@@ -1,0 +1,15 @@
+.git
+.github
+.DS_Store
+__pycache__
+*.py[cod]
+*.log
+.pytest_cache
+.mypy_cache
+.ruff_cache
+config/logs
+config/temp
+config/*.db
+config/*.db-*
+docker/volume.png
+windows/rely/upx.exe

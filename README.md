@@ -9,7 +9,7 @@
 [![Platform](https://img.shields.io/badge/platform-amd64/arm64-pink?style=plastic)](https://hub.docker.com/r/jxxghp/nas-tools)
 
 
-Docker：https://hub.docker.com/repository/docker/jxxghp/nas-tools
+Docker：https://github.com/charmmmz/nas-tools/pkgs/container/nas-tools
 
 TG频道：https://t.me/nastool
 
@@ -46,11 +46,11 @@ API: http://localhost:3000/api/v1/
 ## 安装
 ### 1、Docker
 ```
-docker pull jxxghp/nas-tools:latest
+docker pull ghcr.io/charmmmz/nas-tools:latest
 ```
 教程见 [这里](docker/readme.md) 。
 
-如无法连接Github，注意不要开启自动更新开关(NASTOOL_AUTO_UPDATE=false)，将NASTOOL_CN_UPDATE设置为true可使用国内源加速安装依赖。
+fork 镜像会在构建时打包当前仓库代码，部署时请保持 `NASTOOL_AUTO_UPDATE=false`，后续更新通过重新构建镜像发布。
 
 ### 2、本地运行
 python3.10版本，需要预安装cython，如发现缺少依赖包需额外安装

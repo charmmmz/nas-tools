@@ -2,6 +2,15 @@
 
 cd ${WORKDIR}
 if [ "${NASTOOL_AUTO_UPDATE}" = "true" ]; then
+    case "${NASTOOL_VERSION}" in
+        custom*)
+            echo "当前镜像已在构建时打包代码，跳过启动时自动更新。请重新构建镜像来发布你的 fork 改动。"
+            NASTOOL_AUTO_UPDATE=false
+            ;;
+    esac
+fi
+
+if [ "${NASTOOL_AUTO_UPDATE}" = "true" ]; then
     if [ ! -s /tmp/requirements.txt.sha256sum ]; then
         sha256sum requirements.txt > /tmp/requirements.txt.sha256sum
     fi

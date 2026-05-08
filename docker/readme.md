@@ -2,6 +2,8 @@
 
 - 基于alpine实现，镜像体积小；
 
+- fork 镜像在构建阶段打包当前仓库代码，不会在容器启动时从上游仓库覆盖你的改动；
+
 - 镜像层数少；
 
 - 支持 amd64/arm64 架构；
@@ -36,12 +38,9 @@ docker run -d \
     -e PUID=0     `# 想切换为哪个用户来运行程序，该用户的uid，详见下方说明` \
     -e PGID=0     `# 想切换为哪个用户来运行程序，该用户的gid，详见下方说明` \
     -e UMASK=000  `# 掩码权限，默认000，可以考虑设置为022` \
-    -e NASTOOL_AUTO_UPDATE=false `# 如需在启动容器时自动升级程程序请设置为true` \
-    -e NASTOOL_CN_UPDATE=false `# 如果开启了容器启动自动升级程序，并且网络不太友好时，可以设置为true，会使用国内源进行软件更新` \
-    jxxghp/nas-tools
+    -e NASTOOL_AUTO_UPDATE=false `# fork镜像已打包代码，更新请重新构建镜像` \
+    ghcr.io/charmmmz/nas-tools:latest
 ```
-
-如果你访问github的网络不太好，可以考虑在创建容器时增加设置一个环境变量`-e REPO_URL="https://ghproxy.com/https://github.com/jxxghp/nas-tools.git" \`。
 
 **docker-compose**
 
@@ -51,7 +50,7 @@ docker run -d \
 version: "3"
 services:
   nas-tools:
-    image: jxxghp/nas-tools:latest
+    image: ghcr.io/charmmmz/nas-tools:latest
     ports:
       - 3000:3000        # 默认的webui控制端口
     volumes:
@@ -61,9 +60,8 @@ services:
       - PUID=0    # 想切换为哪个用户来运行程序，该用户的uid
       - PGID=0    # 想切换为哪个用户来运行程序，该用户的gid
       - UMASK=000 # 掩码权限，默认000，可以考虑设置为022
-      - NASTOOL_AUTO_UPDATE=false  # 如需在启动容器时自动升级程程序请设置为true
-      - NASTOOL_CN_UPDATE=false # 如果开启了容器启动自动升级程序，并且网络不太友好时，可以设置为true，会使用国内源进行软件更新
-     #- REPO_URL=https://ghproxy.com/https://github.com/jxxghp/nas-tools.git  # 当你访问github网络很差时，可以考虑解释本行注释
+      - TZ=Asia/Shanghai
+      - NASTOOL_AUTO_UPDATE=false  # fork镜像已打包代码，更新请重新构建镜像
     restart: always
     network_mode: bridge
     hostname: nas-tools
@@ -72,11 +70,7 @@ services:
 
 ## 后续如何更新
 
-- 正常情况下，如果设置了`NASTOOL_AUTO_UPDATE=true`，重启容器即可自动更新nas-tools程序。
-
-- 设置了`NASTOOL_AUTO_UPDATE=true`时，如果启动时的日志提醒你 "更新失败，继续使用旧的程序来启动..."，请再重启一次，如果一直都报此错误，请改善你的网络。
-
-- 设置了`NASTOOL_AUTO_UPDATE=true`时，如果启动时的日志提醒你 "无法安装依赖，请更新镜像..."，则需要删除旧容器，删除旧镜像，重新pull镜像，再重新创建容器。
+- fork 镜像已打包仓库代码。代码修改后，重新构建并推送镜像，然后在 NAS 上重新拉取镜像并重建容器。
 
 ## 关于PUID/PGID的说明
 
