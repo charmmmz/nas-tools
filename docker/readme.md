@@ -42,6 +42,8 @@ docker run -d \
     ghcr.io/charmmmz/nas-tools:latest
 ```
 
+如需固定到当前 fork 版本，可将镜像标签改为 `ghcr.io/charmmmz/nas-tools:2.9.1-fork.1`。
+
 **docker-compose**
 
 新建`docker-compose.yaml`文件如下，并以命令`docker-compose up -d`启动。

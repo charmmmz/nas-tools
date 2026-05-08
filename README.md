@@ -50,7 +50,7 @@ docker pull ghcr.io/charmmmz/nas-tools:latest
 ```
 教程见 [这里](docker/readme.md) 。
 
-fork 镜像会在构建时打包当前仓库代码，部署时请保持 `NASTOOL_AUTO_UPDATE=false`，后续更新通过重新构建镜像发布。
+fork 镜像会在构建时打包当前仓库代码，部署时请保持 `NASTOOL_AUTO_UPDATE=false`，后续更新通过重新构建镜像发布。稳定版镜像使用 `latest`，明确版本可使用 `2.9.1-fork.1`。
 
 ### 2、本地运行
 python3.10版本，需要预安装cython，如发现缺少依赖包需额外安装
