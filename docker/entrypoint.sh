@@ -17,10 +17,8 @@ if [ "${NASTOOL_AUTO_UPDATE}" = "true" ]; then
     if [ ! -s /tmp/third_party.txt.sha256sum ]; then
         sha256sum third_party.txt > /tmp/third_party.txt.sha256sum
     fi
-    if [ "${NASTOOL_VERSION}" != "lite" ]; then
-        if [ ! -s /tmp/package_list.txt.sha256sum ]; then
-            sha256sum package_list.txt > /tmp/package_list.txt.sha256sum
-        fi
+    if [ ! -s /tmp/package_list.txt.sha256sum ]; then
+        sha256sum package_list.txt > /tmp/package_list.txt.sha256sum
     fi
     echo "更新程序..."
     git remote set-url origin "${REPO_URL}" &> /dev/null
@@ -67,24 +65,22 @@ if [ "${NASTOOL_AUTO_UPDATE}" = "true" ]; then
             fi
         fi
         # 系统软件包更新
-        if [ "${NASTOOL_VERSION}" != "lite" ]; then
-            hash_old=$(cat /tmp/package_list.txt.sha256sum)
-            hash_new=$(sha256sum package_list.txt)
-            if [ "${hash_old}" != "${hash_new}" ]; then
-                echo "检测到package_list.txt有变化，更新软件包..."
-                if [ "${NASTOOL_CN_UPDATE}" = "true" ]; then
-                    sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_MIRROR}/g" /etc/apk/repositories
-                    apk update -f
-                fi
-                apk add --no-cache libffi-dev
-                apk add --no-cache $(echo $(cat package_list.txt))
-                if [ $? -ne 0 ]; then
-                    echo "无法更新软件包，请更新镜像..."
-                else
-                    apk del libffi-dev
-                    echo "软件包安装成功..."
-                    sha256sum package_list.txt > /tmp/package_list.txt.sha256sum
-                fi
+        hash_old=$(cat /tmp/package_list.txt.sha256sum)
+        hash_new=$(sha256sum package_list.txt)
+        if [ "${hash_old}" != "${hash_new}" ]; then
+            echo "检测到package_list.txt有变化，更新软件包..."
+            if [ "${NASTOOL_CN_UPDATE}" = "true" ]; then
+                sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_MIRROR}/g" /etc/apk/repositories
+                apk update -f
+            fi
+            apk add --no-cache libffi-dev
+            apk add --no-cache $(echo $(cat package_list.txt))
+            if [ $? -ne 0 ]; then
+                echo "无法更新软件包，请更新镜像..."
+            else
+                apk del libffi-dev
+                echo "软件包安装成功..."
+                sha256sum package_list.txt > /tmp/package_list.txt.sha256sum
             fi
         fi
     else
@@ -96,14 +92,9 @@ fi
 
 echo "以PUID=${PUID}，PGID=${PGID}的身份启动程序..."
 
-if [ "${NASTOOL_VERSION}" = "lite" ]; then
-    mkdir -p /.pm2
-    chown -R "${PUID}":"${PGID}" "${WORKDIR}" /config /.pm2
-else
-    mkdir -p /.local
-    mkdir -p /.pm2
-    chown -R "${PUID}":"${PGID}" "${WORKDIR}" /config /usr/lib/chromium /.local /.pm2
-    export PATH=${PATH}:/usr/lib/chromium
-fi
+mkdir -p /.local
+mkdir -p /.pm2
+chown -R "${PUID}":"${PGID}" "${WORKDIR}" /config /usr/lib/chromium /.local /.pm2
+export PATH=${PATH}:/usr/lib/chromium
 umask "${UMASK}"
 exec su-exec "${PUID}":"${PGID}" "$(which dumb-init)" "$(which pm2-runtime)" start run.py -n NAStool --interpreter python3
