@@ -1,0 +1,121 @@
+import XCTest
+@testable import NASTOOLMobile
+
+final class NastoolAPIClientTests: XCTestCase {
+    func testMakeFormRequestUsesNastoolTokenHeaderAndEncodedBody() throws {
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "https://nas.example.com/nastool/")),
+            token: "jwt-token"
+        )
+
+        let request = try client.makeFormRequest(
+            path: "/api/v1/download/info",
+            fields: ["ids": "abc 123", "empty": nil]
+        )
+
+        XCTAssertEqual(request.url?.absoluteString, "https://nas.example.com/nastool/api/v1/download/info")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "jwt-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/x-www-form-urlencoded; charset=utf-8")
+        XCTAssertEqual(String(data: try XCTUnwrap(request.httpBody), encoding: .utf8), "ids=abc%20123")
+    }
+
+    func testLoginPostsCredentialsAndDecodesResponse() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "https://nas.example.com")),
+            session: session
+        )
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.path, "/api/v1/user/login")
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(String(data: try requestBodyData(from: request), encoding: .utf8), "password=p%40ss&username=admin")
+
+            let data = Data("""
+            {
+              "code": 0,
+              "success": true,
+              "data": {
+                "token": "jwt-token",
+                "apikey": "api-key",
+                "userinfo": {
+                  "userid": "8",
+                  "username": "admin",
+                  "userpris": ["admin"]
+                }
+              }
+            }
+            """.utf8)
+            return (HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)!, data)
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        let login = try await client.login(username: "admin", password: "p@ss")
+
+        XCTAssertEqual(login.data.token, "jwt-token")
+        XCTAssertEqual(login.data.apiKey, "api-key")
+        XCTAssertEqual(login.data.user.id, "8")
+    }
+}
+
+private final class MockURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        guard let requestHandler = Self.requestHandler else {
+            XCTFail("Missing request handler")
+            return
+        }
+
+        do {
+            let (response, data) = try requestHandler(request)
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
+}
+
+private func requestBodyData(from request: URLRequest) throws -> Data {
+    if let body = request.httpBody {
+        return body
+    }
+    guard let stream = request.httpBodyStream else {
+        return Data()
+    }
+
+    stream.open()
+    defer { stream.close() }
+
+    var data = Data()
+    let bufferSize = 1024
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+    defer { buffer.deallocate() }
+
+    while stream.hasBytesAvailable {
+        let count = stream.read(buffer, maxLength: bufferSize)
+        if count < 0 {
+            throw stream.streamError ?? NastoolAPIError.invalidResponse
+        }
+        if count == 0 {
+            break
+        }
+        data.append(buffer, count: count)
+    }
+    return data
+}
