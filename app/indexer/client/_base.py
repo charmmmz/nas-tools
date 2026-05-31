@@ -1,10 +1,12 @@
 import datetime
+import re
 import xml.dom.minidom
 from abc import ABCMeta, abstractmethod
 
 import log
 from app.filter import Filter
 from app.helper import ProgressHelper
+from app.indexer_search_config import resolve_torznab_timeout
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import DomUtils, RequestUtils, StringUtils, ExceptionUtils
@@ -71,7 +73,10 @@ class _IIndexClient(metaclass=ABCMeta):
                                                         replace_word=" ",
                                                         allow_space=True)
         api_url = f"{indexer.domain}?apikey={self.api_key}&t=search&q={search_word}"
-        result_array = self.__parse_torznabxml(api_url)
+        result_array = self.__parse_torznabxml(
+            url=api_url,
+            timeout=resolve_torznab_timeout(getattr(self, "_client_config", {}))
+        )
         if len(result_array) == 0:
             log.warn(f"【{self.index_type}】{indexer.name} 未检索到数据")
             self.progress.update(ptype='search', text=f"{indexer.name} 未检索到数据")
@@ -86,20 +91,25 @@ class _IIndexClient(metaclass=ABCMeta):
                                               start_time=start_time)
 
     @staticmethod
-    def __parse_torznabxml(url):
+    def __parse_torznabxml(url, timeout=10):
         """
         从torznab xml中解析种子信息
         :param url: URL地址
+        :param timeout: 请求超时时间
         :return: 解析出来的种子信息列表
         """
         if not url:
             return []
         try:
-            ret = RequestUtils(timeout=10).get_res(url)
+            ret = RequestUtils(timeout=timeout).get_res(url)
         except Exception as e2:
             ExceptionUtils.exception_traceback(e2)
             return []
+        if ret is None:
+            log.warn(f"【Indexer】Torznab请求失败或超时，超时时间：{timeout} 秒，地址：{_IIndexClient.__mask_api_key(url)}")
+            return []
         if not ret:
+            log.warn(f"【Indexer】Torznab请求异常，状态码：{ret.status_code}，地址：{_IIndexClient.__mask_api_key(url)}")
             return []
         xmls = ret.text
         if not xmls:
@@ -187,6 +197,10 @@ class _IIndexClient(metaclass=ABCMeta):
             pass
 
         return torrents
+
+    @staticmethod
+    def __mask_api_key(url):
+        return re.sub(r"([?&]apikey=)[^&]+", r"\1***", url)
 
     def filter_search_results(self, result_array: list,
                               order_seq,
