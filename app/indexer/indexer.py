@@ -5,6 +5,7 @@ import log
 from app.conf import ModuleConf
 from app.helper import ProgressHelper, SubmoduleHelper
 from app.indexer.client import BuiltinIndexer
+from app.indexer_search_config import resolve_search_workers
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, IndexerType
@@ -113,6 +114,15 @@ class Indexer(object):
         """
         return self._client_type
 
+    @staticmethod
+    def __filter_search_indexers(indexers, filter_args):
+        if not filter_args or not filter_args.get("site"):
+            return indexers
+        sites = filter_args.get("site")
+        if isinstance(sites, str):
+            sites = [sites] if sites else []
+        return [indexer for indexer in indexers if indexer.name in sites]
+
     def search_by_keyword(self,
                           key_word: [str, list],
                           filter_args: dict,
@@ -132,38 +142,47 @@ class Indexer(object):
             return []
 
         indexers = self.get_indexers()
+        indexers = self.__filter_search_indexers(indexers, filter_args)
         if not indexers:
             log.error(f"【{self._client_type.value}】没有有效的索引器配置！")
             return []
         # 计算耗时
         start_time = datetime.datetime.now()
+        search_workers = resolve_search_workers(
+            indexer_count=len(indexers),
+            client_type=self._client_type,
+            client_config=getattr(self._client, "_client_config", {})
+        )
         if filter_args and filter_args.get("site"):
             log.info(f"【{self._client_type.value}】开始检索 %s，站点：%s ..." % (key_word, filter_args.get("site")))
             self.progress.update(ptype='search', text="开始检索 %s，站点：%s ..." % (key_word, filter_args.get("site")))
         else:
-            log.info(f"【{self._client_type.value}】开始并行检索 %s，线程数：%s ..." % (key_word, len(indexers)))
-            self.progress.update(ptype='search', text="开始并行检索 %s，线程数：%s ..." % (key_word, len(indexers)))
+            log.info(f"【{self._client_type.value}】开始并行检索 %s，站点数：%s，线程数：%s ..."
+                     % (key_word, len(indexers), search_workers))
+            self.progress.update(ptype='search',
+                                 text="开始并行检索 %s，站点数：%s，线程数：%s ..."
+                                      % (key_word, len(indexers), search_workers))
         # 多线程
-        executor = ThreadPoolExecutor(max_workers=len(indexers))
-        all_task = []
-        for index in indexers:
-            order_seq = 100 - int(index.pri)
-            task = executor.submit(self._client.search,
-                                   order_seq,
-                                   index,
-                                   key_word,
-                                   filter_args,
-                                   match_media,
-                                   in_from)
-            all_task.append(task)
         ret_array = []
-        finish_count = 0
-        for future in as_completed(all_task):
-            result = future.result()
-            finish_count += 1
-            self.progress.update(ptype='search', value=round(100 * (finish_count / len(all_task))))
-            if result:
-                ret_array = ret_array + result
+        with ThreadPoolExecutor(max_workers=search_workers) as executor:
+            all_task = []
+            for index in indexers:
+                order_seq = 100 - int(index.pri)
+                task = executor.submit(self._client.search,
+                                       order_seq,
+                                       index,
+                                       key_word,
+                                       filter_args,
+                                       match_media,
+                                       in_from)
+                all_task.append(task)
+            finish_count = 0
+            for future in as_completed(all_task):
+                result = future.result()
+                finish_count += 1
+                self.progress.update(ptype='search', value=round(100 * (finish_count / len(all_task))))
+                if result:
+                    ret_array = ret_array + result
         # 计算耗时
         end_time = datetime.datetime.now()
         log.info(f"【{self._client_type.value}】所有站点检索完成，有效资源数：%s，总耗时 %s 秒"

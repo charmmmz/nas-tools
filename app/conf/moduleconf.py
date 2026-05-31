@@ -817,6 +817,22 @@ class ModuleConf(object):
                     "tooltip": "Jackett管理界面中配置的Admin password，如未配置可为空",
                     "type": "password",
                     "placeholder": ""
+                },
+                "search_threads": {
+                    "id": "jackett.search_threads",
+                    "required": False,
+                    "title": "搜索并发数",
+                    "tooltip": "同时请求Jackett站点的线程数，站点多或经常超时时建议设置为3-5",
+                    "type": "number",
+                    "placeholder": "5"
+                },
+                "search_timeout": {
+                    "id": "jackett.search_timeout",
+                    "required": False,
+                    "title": "单站超时",
+                    "tooltip": "单个Jackett站点搜索等待秒数，留空默认为10秒",
+                    "type": "number",
+                    "placeholder": "10"
                 }
             }
         },
@@ -841,6 +857,22 @@ class ModuleConf(object):
                     "tooltip": "在Prowlarr->Settings->General->Security-> API Key中获取",
                     "type": "text",
                     "placeholder": ""
+                },
+                "search_threads": {
+                    "id": "prowlarr.search_threads",
+                    "required": False,
+                    "title": "搜索并发数",
+                    "tooltip": "同时请求Prowlarr索引器的线程数，索引器多或经常超时时建议设置为3-5",
+                    "type": "number",
+                    "placeholder": "5"
+                },
+                "search_timeout": {
+                    "id": "prowlarr.search_timeout",
+                    "required": False,
+                    "title": "单站超时",
+                    "tooltip": "单个Prowlarr索引器搜索等待秒数，留空默认为10秒",
+                    "type": "number",
+                    "placeholder": "10"
                 }
             }
         }

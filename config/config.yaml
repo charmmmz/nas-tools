@@ -220,6 +220,10 @@ jackett:
   api_key:
   # 【Jackett管理密码】：如未设置可为空
   password:
+  # 【搜索并发数】：同时请求Jackett站点的线程数，站点多或经常超时时建议设置为3-5，留空默认为5
+  search_threads:
+  # 【单站搜索超时】：单个Jackett站点搜索等待秒数，留空默认为10秒
+  search_timeout:
 
 # 【配置prowlarr检索器】
 prowlarr:
@@ -227,6 +231,10 @@ prowlarr:
   host:
   # 【Prowlarr ApiKey】：Prowlarr设置页面获取API Key
   api_key:
+  # 【搜索并发数】：同时请求Prowlarr索引器的线程数，索引器多或经常超时时建议设置为3-5，留空默认为5
+  search_threads:
+  # 【单站搜索超时】：单个Prowlarr索引器搜索等待秒数，留空默认为10秒
+  search_timeout:
 
 # 【配置qBittorrent下载软件】：pt区的pt_client如配置为qbittorrent则需要同步配置该项
 qbittorrent:
