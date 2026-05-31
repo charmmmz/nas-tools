@@ -128,6 +128,7 @@ class TraktWebActionTest(TestCase):
         expected = [{"id": 11, "title": "Movie", "type": "MOV"}]
         action = object.__new__(WebAction)
         with patch("web.action.Trakt", create=True) as trakt_cls, \
+                patch("web.action.hydrate_recommendation_posters") as hydrate, \
                 patch("web.action.FileTransfer") as filetransfer_cls:
             trakt_cls.return_value.get_movie_recommendations.return_value = expected
             filetransfer_cls.return_value.get_media_exists_flag.return_value = (False, "")
@@ -143,6 +144,7 @@ class TraktWebActionTest(TestCase):
             page=2,
             params={"ignore_watched": "true"}
         )
+        hydrate.assert_called_once_with(expected, source="trakt")
         self.assertEqual(result["Items"], [{
             "id": 11,
             "title": "Movie",
@@ -155,6 +157,7 @@ class TraktWebActionTest(TestCase):
         expected = [{"id": 22, "title": "Show", "type": "TV"}]
         action = object.__new__(WebAction)
         with patch("web.action.Trakt", create=True) as trakt_cls, \
+                patch("web.action.hydrate_recommendation_posters") as hydrate, \
                 patch("web.action.FileTransfer") as filetransfer_cls:
             trakt_cls.return_value.get_show_recommendations.return_value = expected
             filetransfer_cls.return_value.get_media_exists_flag.return_value = (True, 7)
@@ -170,6 +173,7 @@ class TraktWebActionTest(TestCase):
             page=1,
             params={}
         )
+        hydrate.assert_called_once_with(expected, source="trakt")
         self.assertEqual(result["Items"], [{
             "id": 22,
             "title": "Show",

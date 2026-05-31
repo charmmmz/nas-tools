@@ -1,0 +1,242 @@
+<style>
+  .home-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+  }
+  .phone-shell {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 28px;
+    background: #101319;
+    padding: 10px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
+  }
+  .phone-screen {
+    height: 560px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: #f7f7f5;
+    color: #15171a;
+    padding: 16px;
+    position: relative;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #5b6472;
+    margin-bottom: 12px;
+  }
+  .mock-title {
+    font-size: 26px;
+    line-height: 1.02;
+    font-weight: 760;
+    letter-spacing: 0;
+    margin: 0 0 10px;
+  }
+  .hero-poster {
+    height: 178px;
+    border-radius: 12px;
+    background:
+      linear-gradient(135deg, rgba(0,0,0,.62), rgba(0,0,0,.05)),
+      linear-gradient(120deg, #2f4858, #b84f4b 54%, #e6bf65);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    color: white;
+    margin-bottom: 14px;
+  }
+  .hero-copy {
+    font-size: 21px;
+    line-height: 1;
+    font-weight: 760;
+    max-width: 85%;
+  }
+  .pill-row {
+    display: flex;
+    gap: 7px;
+    overflow: hidden;
+    margin: 8px 0 12px;
+  }
+  .pill {
+    border: 1px solid rgba(86, 92, 104, .2);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 10px;
+    white-space: nowrap;
+    background: white;
+  }
+  .rail {
+    display: grid;
+    grid-template-columns: repeat(4, 58px);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .poster {
+    height: 88px;
+    border-radius: 7px;
+    background: linear-gradient(150deg, #506b80, #d06f57);
+  }
+  .poster:nth-child(2n) { background: linear-gradient(150deg, #384554, #85a37d); }
+  .poster:nth-child(3n) { background: linear-gradient(150deg, #765a6f, #e4b96c); }
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .compact-panel {
+    border: 1px solid rgba(86, 92, 104, .15);
+    border-radius: 10px;
+    background: white;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .two-col-wall {
+    columns: 2;
+    column-gap: 8px;
+    margin-top: 8px;
+  }
+  .wall-card {
+    break-inside: avoid;
+    margin: 0 0 8px;
+    border-radius: 9px;
+    background: white;
+    border: 1px solid rgba(86, 92, 104, .12);
+    overflow: hidden;
+  }
+  .wall-img {
+    height: 116px;
+    background: linear-gradient(160deg, #1f2937, #c47b5a);
+  }
+  .wall-card:nth-child(2n) .wall-img { height: 154px; background: linear-gradient(150deg, #34505f, #8eb288); }
+  .wall-card:nth-child(3n) .wall-img { height: 98px; background: linear-gradient(150deg, #5e516c, #e5bd71); }
+  .wall-body {
+    padding: 7px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin-bottom: 12px;
+  }
+  .metric {
+    background: #eef2f2;
+    border-radius: 8px;
+    padding: 9px 8px;
+    font-size: 10px;
+  }
+  .metric strong {
+    display: block;
+    font-size: 17px;
+  }
+  .mini-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-radius: 10px;
+    padding: 3px;
+    background: #e9ecec;
+    margin: 10px 0 12px;
+    font-size: 10px;
+    text-align: center;
+  }
+  .mini-tabs div:first-child {
+    background: white;
+    border-radius: 8px;
+    padding: 5px 0;
+  }
+  .mini-tabs div:last-child { padding: 5px 0; }
+  @media (max-width: 950px) {
+    .home-layout-grid { grid-template-columns: 1fr; }
+    .phone-screen { height: 500px; }
+  }
+</style>
+
+<h2>Home Page Direction</h2>
+<p class="subtitle">Pick the homepage feel you want. All options use NASTOOL as the backend proxy and keep TMDB credentials server-side.</p>
+
+<div class="home-layout-grid cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="phone-shell">
+      <div class="phone-screen">
+        <div class="topbar"><span>NASTOOL</span><span>Search</span></div>
+        <h3 class="mock-title">Home</h3>
+        <div class="hero-poster">
+          <div class="hero-copy">Trending this week</div>
+        </div>
+        <div class="pill-row">
+          <div class="pill">Today</div><div class="pill">This Week</div><div class="pill">Streaming</div>
+        </div>
+        <p class="section-label">What's popular</p>
+        <div class="rail">
+          <div class="poster"></div><div class="poster"></div><div class="poster"></div><div class="poster"></div>
+        </div>
+        <p class="section-label">In theaters</p>
+        <div class="rail">
+          <div class="poster"></div><div class="poster"></div><div class="poster"></div><div class="poster"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Stream-style Home</h3>
+      <p>Big featured item, horizontal rails, fast scanning. Looks polished but the poster wall is secondary.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="phone-shell">
+      <div class="phone-screen">
+        <div class="topbar"><span>NASTOOL</span><span>Refresh</span></div>
+        <h3 class="mock-title">Explore</h3>
+        <div class="metrics-row">
+          <div class="metric"><strong>42</strong>Trend</div>
+          <div class="metric"><strong>18</strong>New</div>
+          <div class="metric"><strong>9</strong>Saved</div>
+        </div>
+        <div class="compact-panel">
+          <p class="section-label">Trending</p>
+          <div class="pill-row"><div class="pill">Today</div><div class="pill">This Week</div></div>
+          <div class="rail"><div class="poster"></div><div class="poster"></div><div class="poster"></div><div class="poster"></div></div>
+        </div>
+        <div class="compact-panel">
+          <p class="section-label">Popular</p>
+          <div class="pill-row"><div class="pill">Streaming</div><div class="pill">Theaters</div></div>
+          <div class="rail"><div class="poster"></div><div class="poster"></div><div class="poster"></div><div class="poster"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. NASTOOL Control Home</h3>
+      <p>More operational and compact, with service state mixed into discovery. Useful, but less poster-wall-forward.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="phone-shell">
+      <div class="phone-screen">
+        <div class="topbar"><span>NASTOOL</span><span>Filters</span></div>
+        <h3 class="mock-title">Poster Wall</h3>
+        <div class="mini-tabs"><div>Trending</div><div>Popular</div></div>
+        <div class="pill-row">
+          <div class="pill">Today</div><div class="pill">This Week</div><div class="pill">Streaming</div><div class="pill">Theaters</div>
+        </div>
+        <div class="two-col-wall">
+          <div class="wall-card"><div class="wall-img"></div><div class="wall-body">Movie title<br>2026 / 8.1</div></div>
+          <div class="wall-card"><div class="wall-img"></div><div class="wall-body">Series title<br>TV / 7.8</div></div>
+          <div class="wall-card"><div class="wall-img"></div><div class="wall-body">Movie title<br>2025 / 7.4</div></div>
+          <div class="wall-card"><div class="wall-img"></div><div class="wall-body">Series title<br>TV / 8.3</div></div>
+          <div class="wall-card"><div class="wall-img"></div><div class="wall-body">Movie title<br>2024 / 6.9</div></div>
+          <div class="wall-card"><div class="wall-img"></div><div class="wall-body">Series title<br>TV / 8.7</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Poster Wall First</h3>
+      <p>Home becomes a masonry discovery surface with segmented filters. Best match for the requested poster wall.</p>
+    </div>
+  </div>
+</div>

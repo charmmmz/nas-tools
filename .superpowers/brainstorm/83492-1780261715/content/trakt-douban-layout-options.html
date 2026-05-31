@@ -1,0 +1,68 @@
+<h2>Trakt / Douban recommendation page refresh</h2>
+<p class="subtitle">Pick the direction that feels closest. My recommendation is A: Trakt-inspired cards inside the current NASTOOL shell, plus TMDB poster fallback.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:300px;background:#edf2f7;display:flex;align-items:center;justify-content:center;">
+      <div style="width:92%;height:250px;background:#171b22;border-radius:8px;display:grid;grid-template-columns:42% 58%;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,.25);">
+        <div style="background:linear-gradient(160deg,#a855f7,#111827 55%,#f97316);position:relative;">
+          <div style="position:absolute;left:12px;bottom:12px;color:white;font-weight:800;font-size:22px;line-height:1;">Poster</div>
+        </div>
+        <div style="padding:16px;color:#fff;background:linear-gradient(90deg,rgba(17,24,39,.86),#111827);">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+            <span style="background:#5b2b83;color:#fff;border-radius:999px;padding:3px 8px;font-size:11px;">Trakt</span>
+            <span style="color:#d8b4fe;font-weight:700;">8.3</span>
+          </div>
+          <div style="font-weight:800;font-size:22px;line-height:1.05;margin-bottom:6px;">Minority Report</div>
+          <div style="color:#b6beca;font-size:13px;margin-bottom:14px;">2002 · Crime · 2h 25m</div>
+          <div style="height:76px;color:#d1d5db;font-size:12px;line-height:1.35;overflow:hidden;">A readable overview area with real poster fallback, status badges, search and subscribe actions.</div>
+          <div style="display:flex;gap:10px;margin-top:18px;color:white;font-size:12px;"><span>Search</span><span>Subscribe</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Trakt-inspired media cards</h3>
+      <p>Keep the current light NASTOOL frame, but make Trakt/Douban recommendation cards wider, darker, denser, and closer to official Trakt. Best balance of polish and scope.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:300px;background:#111827;display:flex;align-items:center;justify-content:center;">
+      <div style="width:94%;height:250px;background:#20242c;border-radius:12px;display:grid;grid-template-columns:84px 1fr;overflow:hidden;">
+        <div style="background:#1f2937;color:#fff;padding:14px;font-size:11px;display:flex;flex-direction:column;gap:14px;"><b>trakt</b><span>Search</span><span>Discover</span><span style="color:#d946ef;">Recommended</span></div>
+        <div style="padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <div style="background:linear-gradient(#e879f9,#111827);border-radius:8px;"></div>
+          <div style="background:linear-gradient(#60a5fa,#111827);border-radius:8px;"></div>
+          <div style="background:linear-gradient(#f97316,#111827);border-radius:8px;"></div>
+          <div style="background:linear-gradient(#22c55e,#111827);border-radius:8px;"></div>
+          <div style="background:linear-gradient(#facc15,#111827);border-radius:8px;"></div>
+          <div style="background:linear-gradient(#94a3b8,#111827);border-radius:8px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Full dark Trakt-style page</h3>
+      <p>Make Trakt pages feel almost like app.trakt.tv, including dark background and a local sidebar rhythm. Strongest resemblance, but it will diverge from the rest of NASTOOL.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:300px;background:#f8fafc;display:flex;align-items:center;justify-content:center;">
+      <div style="width:92%;height:250px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div style="background:linear-gradient(#f472b6,#334155);border-radius:8px;box-shadow:0 6px 18px rgba(15,23,42,.18);"></div>
+        <div style="background:linear-gradient(#38bdf8,#334155);border-radius:8px;box-shadow:0 6px 18px rgba(15,23,42,.18);"></div>
+        <div style="background:linear-gradient(#fb923c,#334155);border-radius:8px;box-shadow:0 6px 18px rgba(15,23,42,.18);"></div>
+        <div style="background:linear-gradient(#a3e635,#334155);border-radius:8px;box-shadow:0 6px 18px rgba(15,23,42,.18);"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Polish the existing poster grid</h3>
+      <p>Fix cover fallback and improve spacing, badges, and hover overlays while keeping the current card shape. Fastest and safest, but less Trakt-like.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Shared data fix</h3>
+  <p>For all options: use source poster first, then TMDB poster by TMDB id when available, then existing no-image placeholder only as the last fallback. Trakt has TMDB ids already; Douban can use TMDB only when we can resolve safely.</p>
+</div>

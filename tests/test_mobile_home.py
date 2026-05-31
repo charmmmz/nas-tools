@@ -7,8 +7,14 @@ from app.utils.types import MediaType
 from web.action import WebAction
 
 
+class FakeTMDB:
+    def __init__(self):
+        self.language = None
+
+
 class FakeMedia:
     def __init__(self):
+        self.tmdb = FakeTMDB()
         self.trending_calls = []
         self.discover_calls = []
 
@@ -123,3 +129,21 @@ class MobileHomeFeedTest(TestCase):
 
         self.assertEqual(response["code"], 1)
         self.assertIn("地区", response["msg"])
+
+    def test_language_is_normalized_and_applied_to_tmdb(self):
+        fake_media = FakeMedia()
+
+        with patch("web.action.Media", return_value=fake_media), \
+                patch("web.action.FileTransfer") as filetransfer_cls:
+            filetransfer_cls.return_value.get_media_exists_flag.return_value = ("0", "")
+
+            response = self.action.get_mobile_home({
+                "group": "trending",
+                "filter": "today",
+                "language": "zh_cn",
+                "page": 1
+            })
+
+        self.assertEqual(response["code"], 0)
+        self.assertEqual(response["language"], "zh-CN")
+        self.assertEqual(fake_media.tmdb.language, "zh-CN")

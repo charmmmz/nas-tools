@@ -205,6 +205,76 @@ final class NastoolModelDecodingTests: XCTestCase {
         XCTAssertTrue(response.data.items.first?.isFavorite == true)
     }
 
+    func testHomeFeedResponseDecodesNastoolFavoriteFlagString() throws {
+        let data = Data("""
+        {
+          "code": 0,
+          "success": true,
+          "data": {
+            "group": "trending",
+            "filter": "today",
+            "region": "",
+            "page": 1,
+            "has_more": true,
+            "items": [
+              {
+                "id": 101,
+                "tmdbid": 101,
+                "title": "Arrival",
+                "type": "MOV",
+                "media_type": "电影",
+                "year": "2016",
+                "vote": 7.6,
+                "image": "https://image.tmdb.org/t/p/w500/poster.jpg",
+                "overview": "A movie.",
+                "fav": "0",
+                "rssid": ""
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let response = try JSONDecoder().decode(HomeFeedResponse.self, from: data)
+
+        XCTAssertFalse(response.data.items[0].isFavorite)
+    }
+
+    func testHomeFeedResponseTreatsEmptyRSSIDAsNotSubscribed() throws {
+        let data = Data("""
+        {
+          "code": 0,
+          "success": true,
+          "data": {
+            "group": "trending",
+            "filter": "today",
+            "region": "",
+            "page": 1,
+            "has_more": true,
+            "items": [
+              {
+                "id": 101,
+                "tmdbid": 101,
+                "title": "Arrival",
+                "type": "MOV",
+                "media_type": "电影",
+                "year": "2016",
+                "vote": 7.6,
+                "image": "https://image.tmdb.org/t/p/w500/poster.jpg",
+                "overview": "A movie.",
+                "fav": "0",
+                "rssid": ""
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let response = try JSONDecoder().decode(HomeFeedResponse.self, from: data)
+
+        XCTAssertNil(response.data.items[0].rssID)
+    }
+
     func testSearchMediaResultDecodesNestedTorrentGroups() throws {
         let data = Data("""
         {

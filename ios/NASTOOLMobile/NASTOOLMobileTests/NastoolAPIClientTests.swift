@@ -172,7 +172,7 @@ final class NastoolAPIClientTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "jwt-token")
             XCTAssertEqual(
                 String(data: try requestBodyData(from: request), encoding: .utf8),
-                "filter=streaming&group=popular&page=2&region=CN"
+                "filter=streaming&group=popular&language=zh-CN&page=2&region=CN"
             )
 
             let data = Data("""
@@ -194,7 +194,7 @@ final class NastoolAPIClientTests: XCTestCase {
         }
         defer { MockURLProtocol.requestHandler = nil }
 
-        let response = try await client.fetchHomeFeed(group: .popular, filter: .streaming, region: "CN", page: 2)
+        let response = try await client.fetchHomeFeed(group: .popular, filter: .streaming, region: "CN", language: "zh-CN", page: 2)
 
         XCTAssertEqual(response.data.group, .popular)
         XCTAssertEqual(response.data.filter, .streaming)

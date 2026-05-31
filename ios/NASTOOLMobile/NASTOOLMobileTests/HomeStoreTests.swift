@@ -9,13 +9,14 @@ final class HomeStoreTests: XCTestCase {
         let store = HomeStore(
             api: api,
             localeRegionProvider: { "CN" },
+            localeLanguageProvider: { "zh-CN" },
             regionStorage: InMemoryHomeRegionStorage()
         )
 
         await store.loadInitial()
 
         XCTAssertEqual(api.requests, [
-            HomeAPISpy.Request(group: .trending, filter: .today, region: nil, page: 1)
+            HomeAPISpy.Request(group: .trending, filter: .today, region: nil, language: "zh-CN", page: 1)
         ])
         XCTAssertEqual(store.items.map(\.id), ["1"])
         XCTAssertNil(store.errorMessage)
@@ -26,6 +27,7 @@ final class HomeStoreTests: XCTestCase {
         let store = HomeStore(
             api: api,
             localeRegionProvider: { "CN" },
+            localeLanguageProvider: { "zh-CN" },
             regionStorage: InMemoryHomeRegionStorage()
         )
 
@@ -33,7 +35,24 @@ final class HomeStoreTests: XCTestCase {
         store.select(filter: .streaming)
         await store.loadInitial()
 
-        XCTAssertEqual(api.requests.last, HomeAPISpy.Request(group: .popular, filter: .streaming, region: "CN", page: 1))
+        XCTAssertEqual(api.requests.last, HomeAPISpy.Request(group: .popular, filter: .streaming, region: "CN", language: "zh-CN", page: 1))
+    }
+
+    func testHomeFeedLanguageUsesSystemLanguageNotSelectedRegion() async {
+        let api = HomeAPISpy()
+        let store = HomeStore(
+            api: api,
+            localeRegionProvider: { "US" },
+            localeLanguageProvider: { "zh-CN" },
+            regionStorage: InMemoryHomeRegionStorage()
+        )
+
+        store.regionSelection = .region("JP")
+        store.select(group: .popular)
+        store.select(filter: .theaters)
+        await store.loadInitial()
+
+        XCTAssertEqual(api.requests.last, HomeAPISpy.Request(group: .popular, filter: .theaters, region: "JP", language: "zh-CN", page: 1))
     }
 
     func testExplicitRegionPersistsAndOverridesAutomaticRegion() async {
@@ -42,6 +61,7 @@ final class HomeStoreTests: XCTestCase {
         let store = HomeStore(
             api: api,
             localeRegionProvider: { "CN" },
+            localeLanguageProvider: { "zh-CN" },
             regionStorage: storage
         )
 
@@ -62,6 +82,7 @@ final class HomeStoreTests: XCTestCase {
         let store = HomeStore(
             api: api,
             localeRegionProvider: { "CN" },
+            localeLanguageProvider: { "zh-CN" },
             regionStorage: InMemoryHomeRegionStorage()
         )
 
@@ -78,6 +99,7 @@ private final class HomeAPISpy: HomeAPI, @unchecked Sendable {
         let group: HomeFeedGroup
         let filter: HomeFeedFilter
         let region: String?
+        let language: String?
         let page: Int
     }
 
@@ -89,12 +111,13 @@ private final class HomeAPISpy: HomeAPI, @unchecked Sendable {
         group: HomeFeedGroup,
         filter: HomeFeedFilter,
         region: String?,
+        language: String?,
         page: Int
     ) async throws -> HomeFeedResponse {
         if let error {
             throw error
         }
-        requests.append(Request(group: group, filter: filter, region: region, page: page))
+        requests.append(Request(group: group, filter: filter, region: region, language: language, page: page))
         let index = max(0, min(page - 1, pages.count - 1))
         return HomeFeedResponse(
             code: 0,

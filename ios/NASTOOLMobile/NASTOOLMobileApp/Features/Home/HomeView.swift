@@ -328,6 +328,7 @@ private struct HomeMediaDetailView: View {
             VStack(alignment: .leading, spacing: 18) {
                 ZStack(alignment: .bottomLeading) {
                     HomeRemoteImage(path: item.backdropPath ?? item.posterPath, baseURL: imageBaseURL)
+                        .frame(maxWidth: .infinity)
                         .frame(height: 340)
                         .clipped()
 
@@ -351,38 +352,9 @@ private struct HomeMediaDetailView: View {
                     }
                     .padding()
                 }
+                .frame(maxWidth: .infinity)
 
-                HStack(spacing: 12) {
-                    Button {
-                        Task {
-                            await searchResources()
-                        }
-                    } label: {
-                        if isSearching {
-                            ProgressView()
-                        } else {
-                            Label("Search Resources", systemImage: "magnifyingglass")
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isSearching)
-
-                    Button {
-                        Task {
-                            await addSubscription()
-                        }
-                    } label: {
-                        if isSubscribing {
-                            ProgressView()
-                        } else {
-                            Label(subscriptionButtonTitle, systemImage: "bookmark")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isSubscribing || item.rssID != nil)
-                }
-                .controlSize(.large)
-                .padding(.horizontal)
+                actionButtons
 
                 if let overview = item.overview, !overview.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -393,9 +365,11 @@ private struct HomeMediaDetailView: View {
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.bottom, 24)
         }
         .background(Color(.systemGroupedBackground))
@@ -406,6 +380,62 @@ private struct HomeMediaDetailView: View {
         } message: {
             Text(alertMessage)
         }
+    }
+
+    private var actionButtons: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                searchButton
+                subscriptionButton
+            }
+
+            VStack(spacing: 12) {
+                searchButton
+                subscriptionButton
+            }
+        }
+        .controlSize(.large)
+        .padding(.horizontal)
+    }
+
+    private var searchButton: some View {
+        Button {
+            Task {
+                await searchResources()
+            }
+        } label: {
+            if isSearching {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+            } else {
+                Label("Search Resources", systemImage: "magnifyingglass")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(isSearching)
+    }
+
+    private var subscriptionButton: some View {
+        Button {
+            Task {
+                await addSubscription()
+            }
+        } label: {
+            if isSubscribing {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+            } else {
+                Label(subscriptionButtonTitle, systemImage: "bookmark")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .buttonStyle(.bordered)
+        .disabled(isSubscribing || item.rssID != nil)
     }
 
     private var detailSubtitle: String {
@@ -695,6 +725,7 @@ private struct PreviewHomeAPI: HomeViewAPI {
         group: HomeFeedGroup,
         filter: HomeFeedFilter,
         region: String?,
+        language: String?,
         page: Int
     ) async throws -> HomeFeedResponse {
         HomeFeedResponse(

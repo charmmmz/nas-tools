@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="../web/static/css/tabler.min.css" rel="stylesheet">
+  <link href="../web/static/css/style.css" rel="stylesheet">
+  <title>Recommendation Card Preview</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #e7ebef;
+    }
+  </style>
+</head>
+<body>
+<script>
+  window.navmenu = function () {};
+  window.media_search = function () {};
+  window.show_ask_modal = function () {};
+  window.hide_ask_modal = function () {};
+</script>
+<script type="module" src="../web/static/components/lit-index.js"></script>
+<main class="container-xl">
+  <h2 class="page-title mb-3">Trakt / Douban 推荐卡片预览</h2>
+  <div class="d-grid gap-3 grid-recommendation-card">
+    <recommendation-card
+      card-tmdbid="603"
+      card-sourceid="603"
+      card-mediatype="MOV"
+      card-showsub="1"
+      card-image="https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg"
+      card-fav="0"
+      card-vote="8.2"
+      card-year="1999"
+      card-title="The Matrix"
+      card-overview="A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers."
+      card-restype="电影"
+      card-date="1999-03-31"
+      card-site="Trakt"
+    ></recommendation-card>
+    <recommendation-card
+      card-tmdbid="DB:1292052"
+      card-sourceid="DB:1292052"
+      card-mediatype="MOV"
+      card-showsub="1"
+      card-image=""
+      card-fav="1"
+      card-vote="7.7"
+      card-year="2002"
+      card-title="Minority Report"
+      card-overview="A future-set thriller where crimes can be predicted before they happen, and the system turns against one of its own investigators."
+      card-restype="电影"
+      card-date="2002-06-21"
+      card-site="豆瓣"
+    ></recommendation-card>
+    <recommendation-card-placeholder></recommendation-card-placeholder>
+  </div>
+</main>
+</body>
+</html>

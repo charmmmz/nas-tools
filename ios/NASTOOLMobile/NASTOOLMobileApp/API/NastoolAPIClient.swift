@@ -172,6 +172,7 @@ final class NastoolAPIClient: @unchecked Sendable {
         group: HomeFeedGroup,
         filter: HomeFeedFilter,
         region: String?,
+        language: String?,
         page: Int
     ) async throws -> HomeFeedResponse {
         try await postForm(
@@ -180,7 +181,8 @@ final class NastoolAPIClient: @unchecked Sendable {
                 "group": group.rawValue,
                 "filter": filter.rawValue,
                 "page": String(page),
-                "region": region
+                "region": region,
+                "language": language
             ]
         )
     }
