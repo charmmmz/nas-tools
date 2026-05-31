@@ -1025,6 +1025,14 @@ def douban():
                            DoubanHistory=DoubanHistory)
 
 
+# Trakt页面
+@App.route('/trakt', methods=['POST', 'GET'])
+@login_required
+def trakt():
+    return render_template("setting/trakt.html",
+                           Config=Config().get_config())
+
+
 # 下载器页面
 @App.route('/downloader', methods=['POST', 'GET'])
 @login_required

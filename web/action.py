@@ -24,7 +24,7 @@ from app.filter import Filter
 from app.helper import DbHelper, ProgressHelper, ThreadHelper, \
     MetaHelper, DisplayHelper, WordsHelper, CookieCloudHelper
 from app.indexer import Indexer
-from app.media import Category, Media, Bangumi, DouBan
+from app.media import Category, Media, Bangumi, DouBan, Trakt
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
 from app.message import Message, MessageCenter
@@ -117,6 +117,9 @@ class WebAction:
             "get_site_activity": self.__get_site_activity,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.get_recommend,
+            "trakt_device_code": self.__trakt_device_code,
+            "trakt_device_token": self.__trakt_device_token,
+            "trakt_clear_auth": self.__trakt_clear_auth,
             "get_downloaded": self.get_downloaded,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
@@ -2431,11 +2434,20 @@ class WebAction:
                                                    sort=sort,
                                                    tags=tags,
                                                    page=CurrentPage)
+        elif Type == "TRAKT":
+            # Trakt个性推荐
+            params = data.get("params") or {}
+            if SubType == "movie":
+                res_list = Trakt().get_movie_recommendations(page=CurrentPage,
+                                                             params=params)
+            elif SubType == "show":
+                res_list = Trakt().get_show_recommendations(page=CurrentPage,
+                                                            params=params)
 
         # 补充存在与订阅状态
         filetransfer = FileTransfer()
         for res in res_list:
-            fav, rssid = filetransfer.get_media_exists_flag(mtype=Type,
+            fav, rssid = filetransfer.get_media_exists_flag(mtype=res.get("type") or Type,
                                                             title=res.get(
                                                                 "title"),
                                                             year=res.get(
@@ -2446,6 +2458,42 @@ class WebAction:
                 'rssid': rssid
             })
         return {"code": 0, "Items": res_list}
+
+    @staticmethod
+    def __trakt_device_code(data=None):
+        """
+        获取Trakt设备授权码
+        """
+        device_code = Trakt().get_device_code()
+        if not device_code:
+            return {"code": 1, "retmsg": "请先配置 Trakt Client ID"}
+        return {"code": 0, "data": device_code}
+
+    @staticmethod
+    def __trakt_device_token(data):
+        """
+        使用Trakt设备授权码换取访问Token
+        """
+        state, ret = Trakt().poll_device_token((data or {}).get("device_code"))
+        if state:
+            return {"code": 0, "retmsg": "Trakt授权成功"}
+        status_messages = {
+            400: "等待用户完成Trakt授权",
+            404: "Trakt授权码无效",
+            409: "Trakt授权码已使用",
+            410: "Trakt授权码已过期，请重新开始授权",
+            418: "Trakt授权已被拒绝",
+            429: "Trakt请求过于频繁，请稍后再试"
+        }
+        return {"code": 1, "retmsg": status_messages.get(ret, "Trakt授权失败")}
+
+    @staticmethod
+    def __trakt_clear_auth(data=None):
+        """
+        清除Trakt授权信息
+        """
+        Trakt().clear_authorization()
+        return {"code": 0, "retmsg": "Trakt授权已清除"}
 
     def get_downloaded(self, data):
         page = data.get("page")
