@@ -18,6 +18,40 @@ final class DownloadsStoreTests: XCTestCase {
         XCTAssertNil(store.errorMessage)
     }
 
+    func testDownloadSnapshotsUpdateState() async {
+        let api = DownloadsAPISpy()
+        let events = DownloadEventsSpy()
+        let subscribed = expectation(description: "Download event stream subscribed")
+        events.onSubscribe = {
+            subscribed.fulfill()
+        }
+        let store = DownloadsStore(api: api, events: events)
+
+        store.connectEvents()
+        await fulfillment(of: [subscribed], timeout: 1)
+        events.send([
+            DownloadTask(id: "live", name: "Raw Name", title: "Live Movie", speedText: "↓3MB/s", state: "Downloading", progress: 54)
+        ])
+        await waitForTaskIDs(["live"], in: store)
+
+        XCTAssertEqual(store.tasks.map(\.id), ["live"])
+        XCTAssertEqual(store.tasks.first?.progress, 54)
+        XCTAssertNil(store.errorMessage)
+
+        store.disconnectEvents()
+    }
+
+    private func waitForTaskIDs(_ ids: [String], in store: DownloadsStore, file: StaticString = #filePath, line: UInt = #line) async {
+        for _ in 0..<20 {
+            if store.tasks.map(\.id) == ids {
+                return
+            }
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTFail("Timed out waiting for download snapshot", file: file, line: line)
+    }
+
     func testControlActionsCallAPI() async {
         let api = DownloadsAPISpy()
         let store = DownloadsStore(api: api)
@@ -70,5 +104,21 @@ private final class DownloadsAPISpy: DownloadsAPI, @unchecked Sendable {
     func removeDownload(id: String) async throws -> NastoolCommandResponse {
         removedIDs.append(id)
         return NastoolCommandResponse(code: 0, retcode: nil, success: true, message: nil, msg: nil, retmsg: nil)
+    }
+}
+
+private final class DownloadEventsSpy: DownloadEventsAPI, @unchecked Sendable {
+    var onSubscribe: (() -> Void)?
+    private var continuation: AsyncThrowingStream<[DownloadTask], Error>.Continuation?
+
+    func downloadSnapshots() -> AsyncThrowingStream<[DownloadTask], Error> {
+        AsyncThrowingStream { continuation in
+            self.continuation = continuation
+            self.onSubscribe?()
+        }
+    }
+
+    func send(_ tasks: [DownloadTask]) {
+        continuation?.yield(tasks)
     }
 }

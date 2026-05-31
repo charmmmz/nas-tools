@@ -43,6 +43,7 @@ from web.backend.WXBizMsgCrypt3 import WXBizMsgCrypt
 from web.backend.user import User
 from web.backend.wallpaper import get_login_wallpaper
 from web.backend.web_utils import WebUtils
+from web.mobile_ws import register_mobile_websocket
 from web.security import require_auth
 
 # 配置文件锁
@@ -64,6 +65,7 @@ LoginManager.init_app(App)
 
 # API注册
 App.register_blueprint(apiv1_bp, url_prefix="/api/v1")
+register_mobile_websocket(App)
 
 
 @App.after_request

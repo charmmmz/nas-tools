@@ -8,19 +8,27 @@ protocol DownloadsAPI: Sendable {
     func removeDownload(id: String) async throws -> NastoolCommandResponse
 }
 
+protocol DownloadEventsAPI: Sendable {
+    func downloadSnapshots() -> AsyncThrowingStream<[DownloadTask], Error>
+}
+
 extension NastoolAPIClient: DownloadsAPI {}
+extension NastoolAPIClient: DownloadEventsAPI {}
 
 @MainActor
 @Observable
 final class DownloadsStore {
     private let api: DownloadsAPI
+    private let events: DownloadEventsAPI?
+    private var eventsTask: Task<Void, Never>?
 
     private(set) var tasks: [DownloadTask] = []
     private(set) var isLoading = false
     var errorMessage: String?
 
-    init(api: DownloadsAPI) {
+    init(api: DownloadsAPI, events: DownloadEventsAPI? = nil) {
         self.api = api
+        self.events = events ?? api as? DownloadEventsAPI
     }
 
     func load() async {
@@ -29,13 +37,31 @@ final class DownloadsStore {
 
         do {
             let response = try await api.fetchDownloading()
-            tasks = response.result.sorted { lhs, rhs in
-                lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
-            }
-            errorMessage = nil
+            apply(response.result)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func connectEvents() {
+        guard eventsTask == nil, let events else {
+            return
+        }
+
+        eventsTask = Task { @MainActor [weak self] in
+            do {
+                for try await snapshot in events.downloadSnapshots() {
+                    self?.apply(snapshot)
+                }
+            } catch {
+                self?.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func disconnectEvents() {
+        eventsTask?.cancel()
+        eventsTask = nil
     }
 
     func start(_ id: String) async {
@@ -67,6 +93,17 @@ final class DownloadsStore {
             await load()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func apply(_ snapshot: [DownloadTask]) {
+        tasks = sorted(snapshot)
+        errorMessage = nil
+    }
+
+    private func sorted(_ snapshot: [DownloadTask]) -> [DownloadTask] {
+        snapshot.sorted { lhs, rhs in
+            lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
         }
     }
 }

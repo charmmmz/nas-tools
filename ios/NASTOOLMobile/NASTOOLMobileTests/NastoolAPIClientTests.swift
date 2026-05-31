@@ -20,6 +20,29 @@ final class NastoolAPIClientTests: XCTestCase {
         XCTAssertEqual(String(data: try XCTUnwrap(request.httpBody), encoding: .utf8), "ids=abc%20123")
     }
 
+    func testMakeWebSocketRequestUsesWebSocketSchemeBasePathAndToken() throws {
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "https://nas.example.com/nastool/")),
+            token: "jwt-token"
+        )
+
+        let request = try client.makeWebSocketRequest(path: "/api/v1/mobile/downloads/ws")
+
+        XCTAssertEqual(request.url?.absoluteString, "wss://nas.example.com/nastool/api/v1/mobile/downloads/ws")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "jwt-token")
+    }
+
+    func testMakeWebSocketRequestMapsHttpToWs() throws {
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "http://nas.example.com")),
+            token: "jwt-token"
+        )
+
+        let request = try client.makeWebSocketRequest(path: "/api/v1/mobile/downloads/ws")
+
+        XCTAssertEqual(request.url?.scheme, "ws")
+    }
+
     func testLoginPostsCredentialsAndDecodesResponse() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockURLProtocol.self]

@@ -104,6 +104,32 @@ final class NastoolModelDecodingTests: XCTestCase {
         XCTAssertEqual(response.torrents.first?.id, "torrent-hash")
     }
 
+    func testDownloadSnapshotEventDecodesWebSocketPayload() throws {
+        let data = Data("""
+        {
+          "type": "downloads.snapshot",
+          "data": {
+            "code": 0,
+            "result": [
+              {
+                "id": "abc",
+                "title": "Movie",
+                "speed": "↓1MB/s",
+                "state": "Downloading",
+                "progress": 42
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let event = try JSONDecoder().decode(DownloadSnapshotEvent.self, from: data)
+
+        XCTAssertEqual(event.type, "downloads.snapshot")
+        XCTAssertEqual(event.data.result.first?.id, "abc")
+        XCTAssertEqual(event.data.result.first?.progress, 42)
+    }
+
     func testMediaCandidateResponseDecodesApiActionWrappedTMDBResults() throws {
         let data = Data("""
         {

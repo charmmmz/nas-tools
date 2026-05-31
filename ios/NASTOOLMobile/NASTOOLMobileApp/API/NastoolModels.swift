@@ -144,6 +144,11 @@ struct DownloadInfoResponse: Decodable, Equatable {
     }
 }
 
+struct DownloadSnapshotEvent: Decodable {
+    let type: String
+    let data: NastoolResultResponse<[DownloadTask]>
+}
+
 struct DownloadTask: Decodable, Equatable, Hashable, Identifiable {
     let id: String
     let name: String?

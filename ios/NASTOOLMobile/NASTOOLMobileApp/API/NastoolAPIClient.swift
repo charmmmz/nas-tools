@@ -35,6 +35,32 @@ final class NastoolAPIClient: @unchecked Sendable {
         return request
     }
 
+    func makeWebSocketRequest(path: String, includeAuth: Bool = true) throws -> URLRequest {
+        let httpURL = try endpointURL(path: path)
+        guard var components = URLComponents(url: httpURL, resolvingAgainstBaseURL: false) else {
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        switch components.scheme?.lowercased() {
+        case "https":
+            components.scheme = "wss"
+        case "http":
+            components.scheme = "ws"
+        default:
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        guard let url = components.url else {
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        var request = URLRequest(url: url)
+        if includeAuth, let token, !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "Authorization")
+        }
+        return request
+    }
+
     func postForm<Response: Decodable>(
         path: String,
         fields: [String: String?] = [:],
@@ -64,6 +90,56 @@ final class NastoolAPIClient: @unchecked Sendable {
 
     func fetchDownloading() async throws -> NastoolResultResponse<[DownloadTask]> {
         try await postForm(path: "/api/v1/download/now")
+    }
+
+    func downloadSnapshots() -> AsyncThrowingStream<[DownloadTask], Error> {
+        AsyncThrowingStream { continuation in
+            let request: URLRequest
+            do {
+                request = try makeWebSocketRequest(path: "/api/v1/mobile/downloads/ws")
+            } catch {
+                continuation.finish(throwing: error)
+                return
+            }
+
+            let socket = session.webSocketTask(with: request)
+            let receiveTask = Task { [decoder] in
+                do {
+                    while !Task.isCancelled {
+                        let message = try await socket.receive()
+                        let data: Data
+                        switch message {
+                        case .data(let messageData):
+                            data = messageData
+                        case .string(let messageString):
+                            data = Data(messageString.utf8)
+                        @unknown default:
+                            continue
+                        }
+
+                        let envelope = try decoder.decode(WebSocketEventEnvelope.self, from: data)
+                        guard envelope.type == "downloads.snapshot" else {
+                            continue
+                        }
+                        let event = try decoder.decode(DownloadSnapshotEvent.self, from: data)
+                        continuation.yield(event.data.result)
+                    }
+                    continuation.finish()
+                } catch {
+                    if Task.isCancelled {
+                        continuation.finish()
+                    } else {
+                        continuation.finish(throwing: error)
+                    }
+                }
+            }
+
+            socket.resume()
+            continuation.onTermination = { @Sendable _ in
+                receiveTask.cancel()
+                socket.cancel(with: .goingAway, reason: nil)
+            }
+        }
     }
 
     func fetchDownloadInfo(ids: [String]) async throws -> DownloadInfoResponse {
@@ -204,6 +280,10 @@ final class NastoolAPIClient: @unchecked Sendable {
         allowed.remove(charactersIn: ":#[]@!$&'()*+,;=")
         return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
     }
+}
+
+private struct WebSocketEventEnvelope: Decodable {
+    let type: String
 }
 
 private extension String {

@@ -68,6 +68,10 @@ struct DownloadsView: View {
         }
         .task {
             await store.load()
+            store.connectEvents()
+        }
+        .onDisappear {
+            store.disconnectEvents()
         }
     }
 }
