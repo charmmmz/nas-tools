@@ -2,7 +2,8 @@ import Foundation
 import Observation
 
 protocol SearchAPI: Sendable {
-    func searchKeyword(_ keyword: String, quickMode: Bool) async throws -> NastoolCommandResponse
+    func fetchMediaCandidates(keyword: String, source: String?) async throws -> NastoolResultResponse<[MediaCandidate]>
+    func searchKeyword(_ keyword: String, quickMode: Bool, tmdbID: String?, mediaType: String?) async throws -> NastoolCommandResponse
     func fetchSearchResults() async throws -> SearchResultsResponse
     func downloadSearchResult(id: String, directory: String?, setting: String?) async throws -> NastoolCommandResponse
 }
@@ -15,6 +16,8 @@ final class SearchStore {
     private let api: SearchAPI
 
     var query = ""
+    private(set) var candidates: [MediaCandidate] = []
+    private(set) var selectedCandidate: MediaCandidate?
     private(set) var results: [SearchMediaResult] = []
     private(set) var isSearching = false
     private(set) var downloadingIDs: Set<String> = []
@@ -39,7 +42,27 @@ final class SearchStore {
         defer { isSearching = false }
 
         do {
-            let command = try await api.searchKeyword(trimmedKeyword, quickMode: true)
+            let response = try await api.fetchMediaCandidates(keyword: trimmedKeyword, source: "tmdb")
+            candidates = response.result
+            selectedCandidate = nil
+            results = []
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func searchResources(for candidate: MediaCandidate) async {
+        isSearching = true
+        defer { isSearching = false }
+
+        do {
+            let command = try await api.searchKeyword(
+                candidate.title,
+                quickMode: false,
+                tmdbID: candidate.tmdbID,
+                mediaType: candidate.mediaType
+            )
             guard command.isSuccess else {
                 errorMessage = command.message ?? command.msg ?? command.retmsg ?? "Search failed."
                 return
@@ -49,6 +72,8 @@ final class SearchStore {
             results = response.result.values.sorted { lhs, rhs in
                 lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
             }
+            candidates = []
+            selectedCandidate = candidate
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -56,11 +81,19 @@ final class SearchStore {
     }
 
     func download(_ result: SearchMediaResult) async {
-        downloadingIDs.insert(result.id)
-        defer { downloadingIDs.remove(result.id) }
+        await download(id: result.id)
+    }
+
+    func download(_ torrent: SearchTorrent) async {
+        await download(id: torrent.id)
+    }
+
+    private func download(id: String) async {
+        downloadingIDs.insert(id)
+        defer { downloadingIDs.remove(id) }
 
         do {
-            let response = try await api.downloadSearchResult(id: result.id, directory: nil, setting: nil)
+            let response = try await api.downloadSearchResult(id: id, directory: nil, setting: nil)
             guard response.isSuccess else {
                 errorMessage = response.message ?? response.msg ?? response.retmsg ?? "Download failed."
                 return

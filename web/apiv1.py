@@ -1392,6 +1392,7 @@ class RssItemDownload(ClientResource):
 class MediaSearch(ClientResource):
     parser = reqparse.RequestParser()
     parser.add_argument('keyword', type=str, help='关键字', location='form', required=True)
+    parser.add_argument('searchtype', type=str, help='搜索源（tmdb/douban）', location='form')
 
     @media.doc(parser=parser)
     def post(self):

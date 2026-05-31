@@ -82,12 +82,29 @@ final class NastoolAPIClient: @unchecked Sendable {
         try await postForm(path: "/api/v1/download/remove", fields: ["id": id])
     }
 
-    func searchKeyword(_ keyword: String, quickMode: Bool = true) async throws -> NastoolCommandResponse {
+    func fetchMediaCandidates(keyword: String, source: String? = "tmdb") async throws -> NastoolResultResponse<[MediaCandidate]> {
+        try await postForm(
+            path: "/api/v1/media/search",
+            fields: [
+                "keyword": keyword,
+                "searchtype": source
+            ]
+        )
+    }
+
+    func searchKeyword(
+        _ keyword: String,
+        quickMode: Bool = true,
+        tmdbID: String? = nil,
+        mediaType: String? = nil
+    ) async throws -> NastoolCommandResponse {
         try await postForm(
             path: "/api/v1/search/keyword",
             fields: [
                 "search_word": keyword,
-                "unident": quickMode ? "1" : "0"
+                "unident": quickMode ? "1" : nil,
+                "tmdbid": tmdbID,
+                "media_type": mediaType
             ]
         )
     }

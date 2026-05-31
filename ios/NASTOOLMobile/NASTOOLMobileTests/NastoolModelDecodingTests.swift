@@ -50,4 +50,146 @@ final class NastoolModelDecodingTests: XCTestCase {
         XCTAssertEqual(task.progress, 41.5)
         XCTAssertTrue(task.isDownloading)
     }
+
+    func testDownloadingResponseDecodesApiActionWrappedResult() throws {
+        let data = Data("""
+        {
+          "code": 0,
+          "success": true,
+          "message": "",
+          "data": {
+            "result": [
+              {
+                "id": "torrent-hash",
+                "name": "Raw Torrent",
+                "title": "Identified Movie",
+                "speed": "↓2MB/s ↑10KB/s 5m",
+                "state": "Downloading",
+                "progress": 64.2,
+                "image": ""
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let response = try JSONDecoder().decode(NastoolResultResponse<[DownloadTask]>.self, from: data)
+
+        XCTAssertEqual(response.result.map(\.id), ["torrent-hash"])
+        XCTAssertEqual(response.result.first?.displayTitle, "Identified Movie")
+    }
+
+    func testDownloadInfoResponseDecodesApiActionWrappedTorrents() throws {
+        let data = Data("""
+        {
+          "code": 0,
+          "success": true,
+          "message": "",
+          "data": {
+            "torrents": [
+              {
+                "id": "torrent-hash",
+                "speed": "已暂停",
+                "state": "Stoped",
+                "progress": 12
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let response = try JSONDecoder().decode(DownloadInfoResponse.self, from: data)
+
+        XCTAssertEqual(response.retcode, 0)
+        XCTAssertEqual(response.torrents.first?.id, "torrent-hash")
+    }
+
+    func testMediaCandidateResponseDecodesApiActionWrappedTMDBResults() throws {
+        let data = Data("""
+        {
+          "code": 0,
+          "success": true,
+          "message": "",
+          "data": {
+            "result": [
+              {
+                "id": 101,
+                "title": "Arrival",
+                "year": "2016",
+                "type": "电影",
+                "media_type": "电影",
+                "vote": 7.6,
+                "image": "https://image.tmdb.org/t/p/w500/poster.jpg",
+                "tmdb_id": 101,
+                "overview": "A linguist works with aliens.",
+                "link": "https://www.themoviedb.org/movie/101"
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let response = try JSONDecoder().decode(NastoolResultResponse<[MediaCandidate]>.self, from: data)
+
+        XCTAssertEqual(response.result.first?.id, "101")
+        XCTAssertEqual(response.result.first?.tmdbID, "101")
+        XCTAssertEqual(response.result.first?.posterPath, "https://image.tmdb.org/t/p/w500/poster.jpg")
+    }
+
+    func testSearchMediaResultDecodesNestedTorrentGroups() throws {
+        let data = Data("""
+        {
+          "key": "media-key",
+          "title": "Arrival",
+          "year": "2016",
+          "type": "电影",
+          "poster": "https://image.tmdb.org/t/p/w500/poster.jpg",
+          "overview": "A movie.",
+          "exist": false,
+          "torrent_dict": [
+            [
+              "MOV",
+              {
+                "webdl_1080p": {
+                  "group_info": {
+                    "respix": "1080p",
+                    "restype": "WEB-DL"
+                  },
+                  "group_total": 1,
+                  "group_torrents": {
+                    "unique": {
+                      "unique_info": {
+                        "size": "12 GB"
+                      },
+                      "torrent_list": [
+                        {
+                          "id": 301,
+                          "site": "PTSite",
+                          "torrent_name": "Arrival.2016.1080p.WEB-DL",
+                          "description": "WEB-DL / 1080p",
+                          "pageurl": "https://pt.example.com/t/301",
+                          "size": "12 GB",
+                          "respix": "1080p",
+                          "restype": "WEB-DL",
+                          "seeders": 42,
+                          "uploadvalue": 1.0,
+                          "downloadvalue": 0.0
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          ]
+        }
+        """.utf8)
+
+        let result = try JSONDecoder().decode(SearchMediaResult.self, from: data)
+
+        XCTAssertEqual(result.posterPath, "https://image.tmdb.org/t/p/w500/poster.jpg")
+        XCTAssertEqual(result.torrents.map(\.id), ["301"])
+        XCTAssertEqual(result.torrents.first?.torrentName, "Arrival.2016.1080p.WEB-DL")
+        XCTAssertEqual(result.torrents.first?.freeText, "FREE")
+    }
 }

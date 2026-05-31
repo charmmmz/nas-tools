@@ -59,6 +59,80 @@ final class NastoolAPIClientTests: XCTestCase {
         XCTAssertEqual(login.data.apiKey, "api-key")
         XCTAssertEqual(login.data.user.id, "8")
     }
+
+    func testFetchMediaCandidatesPostsKeywordAndTMDBSource() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "https://nas.example.com")),
+            session: session,
+            token: "jwt-token"
+        )
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.path, "/api/v1/media/search")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "jwt-token")
+            XCTAssertEqual(String(data: try requestBodyData(from: request), encoding: .utf8), "keyword=Arrival&searchtype=tmdb")
+
+            let data = Data("""
+            {
+              "code": 0,
+              "success": true,
+              "data": {
+                "result": [
+                  {
+                    "id": 101,
+                    "title": "Arrival",
+                    "type": "电影",
+                    "tmdb_id": 101
+                  }
+                ]
+              }
+            }
+            """.utf8)
+            return (HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)!, data)
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        let response = try await client.fetchMediaCandidates(keyword: "Arrival", source: "tmdb")
+
+        XCTAssertEqual(response.result.map(\.title), ["Arrival"])
+    }
+
+    func testSearchKeywordWithCandidateOmitsQuickModeAndPostsTMDBIdentity() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "https://nas.example.com")),
+            session: session,
+            token: "jwt-token"
+        )
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.path, "/api/v1/search/keyword")
+            XCTAssertEqual(
+                String(data: try requestBodyData(from: request), encoding: .utf8),
+                "media_type=%E7%94%B5%E5%BD%B1&search_word=Arrival&tmdbid=101"
+            )
+
+            let data = Data("""
+            {
+              "code": 0,
+              "success": true,
+              "message": "",
+              "data": {}
+            }
+            """.utf8)
+            return (HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)!, data)
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        let response = try await client.searchKeyword("Arrival", quickMode: false, tmdbID: "101", mediaType: "电影")
+
+        XCTAssertTrue(response.isSuccess)
+    }
 }
 
 private final class MockURLProtocol: URLProtocol {

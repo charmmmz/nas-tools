@@ -77,7 +77,7 @@ private struct AppTabContentView: View {
             }
         case .search:
             if let apiClient = sessionStore.apiClient {
-                SearchView(api: apiClient)
+                SearchView(api: apiClient, imageBaseURL: apiClient.baseURL)
             } else {
                 ContentUnavailableView(tab.title, systemImage: tab.systemImage)
                     .navigationTitle(tab.title)
