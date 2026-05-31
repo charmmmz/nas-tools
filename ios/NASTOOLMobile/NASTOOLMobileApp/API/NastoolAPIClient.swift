@@ -92,6 +92,23 @@ final class NastoolAPIClient: @unchecked Sendable {
         )
     }
 
+    func fetchHomeFeed(
+        group: HomeFeedGroup,
+        filter: HomeFeedFilter,
+        region: String?,
+        page: Int
+    ) async throws -> HomeFeedResponse {
+        try await postForm(
+            path: "/api/v1/mobile/home",
+            fields: [
+                "group": group.rawValue,
+                "filter": filter.rawValue,
+                "page": String(page),
+                "region": region
+            ]
+        )
+    }
+
     func searchKeyword(
         _ keyword: String,
         quickMode: Bool = true,

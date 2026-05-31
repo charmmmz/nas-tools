@@ -133,6 +133,50 @@ final class NastoolAPIClientTests: XCTestCase {
 
         XCTAssertTrue(response.isSuccess)
     }
+
+    func testFetchHomeFeedPostsFilterRegionAndPage() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let client = NastoolAPIClient(
+            baseURL: try XCTUnwrap(URL(string: "https://nas.example.com")),
+            session: session,
+            token: "jwt-token"
+        )
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.path, "/api/v1/mobile/home")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "jwt-token")
+            XCTAssertEqual(
+                String(data: try requestBodyData(from: request), encoding: .utf8),
+                "filter=streaming&group=popular&page=2&region=CN"
+            )
+
+            let data = Data("""
+            {
+              "code": 0,
+              "success": true,
+              "message": "",
+              "data": {
+                "group": "popular",
+                "filter": "streaming",
+                "region": "CN",
+                "page": 2,
+                "has_more": false,
+                "items": []
+              }
+            }
+            """.utf8)
+            return (HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)!, data)
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        let response = try await client.fetchHomeFeed(group: .popular, filter: .streaming, region: "CN", page: 2)
+
+        XCTAssertEqual(response.data.group, .popular)
+        XCTAssertEqual(response.data.filter, .streaming)
+        XCTAssertEqual(response.data.page, 2)
+    }
 }
 
 private final class MockURLProtocol: URLProtocol {

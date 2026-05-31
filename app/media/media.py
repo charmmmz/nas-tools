@@ -903,8 +903,9 @@ class Media:
         ret_infos = []
         for info in infos:
             tmdbid = info.get("id")
-            vote = round(float(info.get("vote_average")), 1) if info.get("vote_average") else 0,
-            image = TMDB_IMAGE_W500_URL % info.get("poster_path")
+            vote = round(float(info.get("vote_average")), 1) if info.get("vote_average") else 0
+            image = TMDB_IMAGE_W500_URL % info.get("poster_path") if info.get("poster_path") else ""
+            backdrop = TMDB_IMAGE_ORIGINAL_URL % info.get("backdrop_path") if info.get("backdrop_path") else ""
             overview = info.get("overview")
             if mtype:
                 media_type = mtype.value
@@ -935,6 +936,7 @@ class Media:
                 'year': year,
                 'vote': vote,
                 'image': image,
+                'backdrop': backdrop,
                 'overview': overview
             })
 
@@ -999,6 +1001,20 @@ class Media:
         if not self.movie:
             return []
         return self.__dict_tmdbinfos(self.trending.all_week(page=page))
+
+    def get_tmdb_trending(self, mtype, time_window, page=1):
+        """
+        获取TMDB电影或电视剧趋势，避免使用all混入人物。
+        """
+        if not self.trending:
+            return []
+        if mtype == MediaType.MOVIE:
+            result = self.trending.movie_day(page=page) if time_window == "day" else self.trending.movie_week(page=page)
+            return self.__dict_tmdbinfos(result, MediaType.MOVIE)
+        if mtype == MediaType.TV:
+            result = self.trending.tv_day(page=page) if time_window == "day" else self.trending.tv_week(page=page)
+            return self.__dict_tmdbinfos(result, MediaType.TV)
+        return []
 
     def __get_tmdb_movie_detail(self, tmdbid, append_to_response=None):
         """

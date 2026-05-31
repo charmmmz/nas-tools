@@ -136,6 +136,49 @@ final class NastoolModelDecodingTests: XCTestCase {
         XCTAssertEqual(response.result.first?.posterPath, "https://image.tmdb.org/t/p/w500/poster.jpg")
     }
 
+    func testHomeFeedResponseDecodesApiActionWrappedPosterItems() throws {
+        let data = Data("""
+        {
+          "code": 0,
+          "success": true,
+          "data": {
+            "group": "popular",
+            "filter": "streaming",
+            "region": "CN",
+            "page": 1,
+            "has_more": true,
+            "items": [
+              {
+                "id": 101,
+                "tmdbid": 101,
+                "title": "Arrival",
+                "type": "MOV",
+                "media_type": "电影",
+                "year": "2016",
+                "vote": 7.6,
+                "image": "https://image.tmdb.org/t/p/w500/poster.jpg",
+                "backdrop": "https://image.tmdb.org/t/p/w500/backdrop.jpg",
+                "overview": "A movie.",
+                "fav": true,
+                "rssid": "rss-1"
+              }
+            ]
+          }
+        }
+        """.utf8)
+
+        let response = try JSONDecoder().decode(HomeFeedResponse.self, from: data)
+
+        XCTAssertEqual(response.data.group, .popular)
+        XCTAssertEqual(response.data.filter, .streaming)
+        XCTAssertEqual(response.data.region, "CN")
+        XCTAssertTrue(response.data.hasMore)
+        XCTAssertEqual(response.data.items.first?.id, "101")
+        XCTAssertEqual(response.data.items.first?.tmdbID, "101")
+        XCTAssertEqual(response.data.items.first?.voteText, "7.6")
+        XCTAssertTrue(response.data.items.first?.isFavorite == true)
+    }
+
     func testSearchMediaResultDecodesNestedTorrentGroups() throws {
         let data = Data("""
         {

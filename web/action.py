@@ -117,6 +117,7 @@ class WebAction:
             "get_site_activity": self.__get_site_activity,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.get_recommend,
+            "get_mobile_home": self.get_mobile_home,
             "trakt_device_code": self.__trakt_device_code,
             "trakt_device_token": self.__trakt_device_token,
             "trakt_clear_auth": self.__trakt_clear_auth,
@@ -2458,6 +2459,89 @@ class WebAction:
                 'rssid': rssid
             })
         return {"code": 0, "Items": res_list}
+
+    @staticmethod
+    def get_mobile_home(data):
+        """
+        移动端首页海报墙数据。
+        """
+        data = data or {}
+        group = (data.get("group") or "trending").lower()
+        filter_key = (data.get("filter") or "today").lower()
+        page = int(data.get("page") or 1)
+        region = (data.get("region") or "").upper()
+
+        if group not in ["trending", "popular"]:
+            return {"code": 1, "msg": "首页分组无效"}
+        if filter_key not in ["today", "week", "streaming", "theaters"]:
+            return {"code": 1, "msg": "首页筛选无效"}
+        if group == "trending" and filter_key not in ["today", "week"]:
+            return {"code": 1, "msg": "趋势筛选无效"}
+        if group == "popular" and filter_key not in ["streaming", "theaters"]:
+            return {"code": 1, "msg": "热门筛选无效"}
+        if region and not re.fullmatch(r"[A-Z]{2}", region):
+            return {"code": 1, "msg": "地区代码无效"}
+
+        media = Media()
+        if group == "trending":
+            region = ""
+            time_window = "day" if filter_key == "today" else "week"
+            movie_items = media.get_tmdb_trending(MediaType.MOVIE, time_window, page=page)
+            tv_items = media.get_tmdb_trending(MediaType.TV, time_window, page=page)
+            items = WebAction.__interleave_media_items(movie_items, tv_items)
+        elif filter_key == "streaming":
+            region = region or "US"
+            params = {
+                "sort_by": "popularity.desc",
+                "watch_region": region,
+                "with_watch_monetization_types": "flatrate"
+            }
+            movie_items = media.get_tmdb_discover(MediaType.MOVIE, params=dict(params), page=page)
+            tv_items = media.get_tmdb_discover(MediaType.TV, params=dict(params), page=page)
+            items = WebAction.__interleave_media_items(movie_items, tv_items)
+        else:
+            region = region or "US"
+            params = {
+                "sort_by": "popularity.desc",
+                "region": region,
+                "with_release_type": "2|3"
+            }
+            items = media.get_tmdb_discover(MediaType.MOVIE, params=params, page=page)
+
+        filetransfer = FileTransfer()
+        for res in items:
+            fav, rssid = filetransfer.get_media_exists_flag(mtype=res.get("type"),
+                                                            title=res.get("title"),
+                                                            year=res.get("year"),
+                                                            mediaid=res.get("id"))
+            res.update({
+                "fav": fav,
+                "rssid": rssid
+            })
+
+        return {
+            "code": 0,
+            "group": group,
+            "filter": filter_key,
+            "region": region,
+            "page": page,
+            "has_more": bool(items),
+            "items": items
+        }
+
+    @staticmethod
+    def __interleave_media_items(first, second):
+        """
+        稳定交错两个已排序列表，保留各自内部顺序。
+        """
+        result = []
+        max_len = max(len(first or []), len(second or []))
+        for index in range(max_len):
+            if first and index < len(first):
+                result.append(first[index])
+            if second and index < len(second):
+                result.append(second[index])
+        return result
 
     @staticmethod
     def __trakt_device_code(data=None):

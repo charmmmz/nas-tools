@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum AppTab: String, CaseIterable, Identifiable {
+    case home
     case downloads
     case search
     case subscriptions
@@ -10,6 +11,8 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .home:
+            "Home"
         case .downloads:
             "Downloads"
         case .search:
@@ -23,6 +26,8 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .home:
+            "square.grid.2x2"
         case .downloads:
             "arrow.down.circle"
         case .search:
@@ -37,7 +42,7 @@ enum AppTab: String, CaseIterable, Identifiable {
 
 struct AppRootView: View {
     @Environment(SessionStore.self) private var sessionStore
-    @State private var selectedTab: AppTab = .downloads
+    @State private var selectedTab: AppTab = .home
 
     var body: some View {
         Group {
@@ -68,6 +73,13 @@ private struct AppTabContentView: View {
     @ViewBuilder
     var body: some View {
         switch tab {
+        case .home:
+            if let apiClient = sessionStore.apiClient {
+                HomeView(api: apiClient, imageBaseURL: apiClient.baseURL)
+            } else {
+                ContentUnavailableView(tab.title, systemImage: tab.systemImage)
+                    .navigationTitle(tab.title)
+            }
         case .downloads:
             if let apiClient = sessionStore.apiClient {
                 DownloadsView(api: apiClient)

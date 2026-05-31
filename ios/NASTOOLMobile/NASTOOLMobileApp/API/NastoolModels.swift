@@ -240,6 +240,143 @@ struct SearchResultsResponse: Decodable {
     }
 }
 
+enum HomeFeedGroup: String, CaseIterable, Codable, Identifiable {
+    case trending
+    case popular
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .trending:
+            "Trending"
+        case .popular:
+            "Popular"
+        }
+    }
+}
+
+enum HomeFeedFilter: String, CaseIterable, Codable, Identifiable {
+    case today
+    case week
+    case streaming
+    case theaters
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .today:
+            "Today"
+        case .week:
+            "This Week"
+        case .streaming:
+            "Streaming"
+        case .theaters:
+            "Theaters"
+        }
+    }
+}
+
+struct HomeFeedResponse: Decodable, Equatable {
+    let code: Int
+    let success: Bool?
+    let message: String?
+    let data: HomeFeedPayload
+}
+
+struct HomeFeedPayload: Decodable, Equatable {
+    let group: HomeFeedGroup
+    let filter: HomeFeedFilter
+    let region: String?
+    let page: Int
+    let hasMore: Bool
+    let items: [HomePosterItem]
+
+    enum CodingKeys: String, CodingKey {
+        case group
+        case filter
+        case region
+        case page
+        case hasMore = "has_more"
+        case items
+    }
+}
+
+struct HomePosterItem: Decodable, Equatable, Hashable, Identifiable {
+    let id: String
+    let tmdbID: String
+    let title: String
+    let type: String
+    let mediaType: String?
+    let year: String?
+    let voteText: String?
+    let posterPath: String?
+    let backdropPath: String?
+    let overview: String?
+    let isFavorite: Bool
+    let rssID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case tmdbID = "tmdbid"
+        case title
+        case type
+        case mediaType = "media_type"
+        case year
+        case vote
+        case posterPath = "image"
+        case backdropPath = "backdrop"
+        case overview
+        case isFavorite = "fav"
+        case rssID = "rssid"
+    }
+
+    init(
+        id: String,
+        tmdbID: String? = nil,
+        title: String,
+        type: String,
+        mediaType: String? = nil,
+        year: String? = nil,
+        voteText: String? = nil,
+        posterPath: String? = nil,
+        backdropPath: String? = nil,
+        overview: String? = nil,
+        isFavorite: Bool = false,
+        rssID: String? = nil
+    ) {
+        self.id = id
+        self.tmdbID = tmdbID ?? id
+        self.title = title
+        self.type = type
+        self.mediaType = mediaType
+        self.year = year
+        self.voteText = voteText
+        self.posterPath = posterPath
+        self.backdropPath = backdropPath
+        self.overview = overview
+        self.isFavorite = isFavorite
+        self.rssID = rssID
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeFlexibleString(forKey: .id)
+        tmdbID = (try? container.decodeFlexibleString(forKey: .tmdbID)) ?? id
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? id
+        type = try container.decodeIfPresent(String.self, forKey: .type) ?? ""
+        mediaType = try container.decodeIfPresent(String.self, forKey: .mediaType)
+        year = try container.decodeFlexibleStringIfPresent(forKey: .year)
+        voteText = try container.decodeFlexibleStringIfPresent(forKey: .vote)
+        posterPath = try container.decodeIfPresent(String.self, forKey: .posterPath)
+        backdropPath = try container.decodeIfPresent(String.self, forKey: .backdropPath)
+        overview = try container.decodeIfPresent(String.self, forKey: .overview)
+        isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
+        rssID = try container.decodeFlexibleStringIfPresent(forKey: .rssID)
+    }
+}
+
 struct MediaCandidate: Decodable, Equatable, Hashable, Identifiable {
     let id: String
     let title: String

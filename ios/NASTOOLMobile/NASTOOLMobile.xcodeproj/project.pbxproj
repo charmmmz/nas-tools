@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00E475CEF387E92B14D95D06 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36F695F4721B798D01BC3FE /* HomeView.swift */; };
 		06EB803C3DFB9CDBBF196AF9 /* SearchStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E78D51E40FB7E7AEC38BAA76 /* SearchStoreTests.swift */; };
+		0A3B70E54AB06C82381557BD /* HomeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF21458EDC9F2E7FE5327C6B /* HomeStore.swift */; };
 		0AE5F7887EBAB1A8803A93E5 /* NastoolAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC06B01B0A280F4FBC232C41 /* NastoolAPIClientTests.swift */; };
 		18209EFB0024841BE90BFB66 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B7FCA1C3BD6CDA7A17CCDF /* LoginView.swift */; };
 		1924A8AF74B6B2A1E3F0620B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5FB7CF798DB6F6584662178F /* Assets.xcassets */; };
@@ -20,6 +22,7 @@
 		6F35ED91F56E5F079E3DA3B9 /* ScaffoldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F2DE5CDDFA365EA4AF9721 /* ScaffoldTests.swift */; };
 		7F21B052E877FF1BA2865CD3 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7038493AC0B5EFFBD6FD102D /* AppRootView.swift */; };
 		82ED801BC5A5906DD600FDC0 /* NASTOOLMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B96AFCA786D01BBF2032F86A /* NASTOOLMobileApp.swift */; };
+		8804B6E093EFDA2FCA177B0D /* HomeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5514F8963029DF51DC3A6ABD /* HomeStoreTests.swift */; };
 		907E78C08CED4C47D287B702 /* LiveActivityPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD57D98FFDAA7E10DA29F71D /* LiveActivityPayloadTests.swift */; };
 		94DDE4B7C82AFDE4CD57AB3B /* SessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFC87FA1EFA97C614A0E20E /* SessionStoreTests.swift */; };
 		96281346AF0DC663FFED9460 /* SubscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C135F82631FAECF90DE1D67 /* SubscriptionsView.swift */; };
@@ -81,6 +84,7 @@
 		4A355F7CC2D1350640C8502D /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		500E80382918E16CF2D992F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		54A05060A7AA414DF0BE8F3E /* NastoolModelDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NastoolModelDecodingTests.swift; sourceTree = "<group>"; };
+		5514F8963029DF51DC3A6ABD /* HomeStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStoreTests.swift; sourceTree = "<group>"; };
 		5B129D1C2FF0E10BF07BB8D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		5C3F43E6257887FA8716E582 /* NASTOOLMobileTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NASTOOLMobileTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FB7CF798DB6F6584662178F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -93,8 +97,10 @@
 		9302BC81096F58068EBCAC0E /* DownloadsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsStore.swift; sourceTree = "<group>"; };
 		A9878F2645E49654790E9F64 /* NASTOOLMobileWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASTOOLMobileWidgets.swift; sourceTree = "<group>"; };
 		AD57D98FFDAA7E10DA29F71D /* LiveActivityPayloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityPayloadTests.swift; sourceTree = "<group>"; };
+		AF21458EDC9F2E7FE5327C6B /* HomeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStore.swift; sourceTree = "<group>"; };
 		B96AFCA786D01BBF2032F86A /* NASTOOLMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASTOOLMobileApp.swift; sourceTree = "<group>"; };
 		BC06B01B0A280F4FBC232C41 /* NastoolAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NastoolAPIClientTests.swift; sourceTree = "<group>"; };
+		C36F695F4721B798D01BC3FE /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C8B676DE78B32253CB2B0E6E /* SessionStoreFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStoreFactory.swift; sourceTree = "<group>"; };
 		D5A911F95D69B3082F7E5C1B /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		E25688A95E00AF7AE8BAA6D2 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
@@ -124,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				229E42934EE41C678272F481 /* DownloadsStoreTests.swift */,
+				5514F8963029DF51DC3A6ABD /* HomeStoreTests.swift */,
 				AD57D98FFDAA7E10DA29F71D /* LiveActivityPayloadTests.swift */,
 				BC06B01B0A280F4FBC232C41 /* NastoolAPIClientTests.swift */,
 				54A05060A7AA414DF0BE8F3E /* NastoolModelDecodingTests.swift */,
@@ -149,6 +156,15 @@
 				097E8953CF4ED7531B2BF0E1 /* DownloadActivityAttributes.swift */,
 			);
 			path = NASTOOLMobileShared;
+			sourceTree = "<group>";
+		};
+		50DF2A4D708403CA6F843B55 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				AF21458EDC9F2E7FE5327C6B /* HomeStore.swift */,
+				C36F695F4721B798D01BC3FE /* HomeView.swift */,
+			);
+			path = Home;
 			sourceTree = "<group>";
 		};
 		87C9106674302FAD57EFC15E /* API */ = {
@@ -221,6 +237,7 @@
 			isa = PBXGroup;
 			children = (
 				A53AB1A0A7318B56E76BDD1B /* Downloads */,
+				50DF2A4D708403CA6F843B55 /* Home */,
 				EFC9E080C43EE2BAD1AB8AA0 /* Search */,
 				0051BBD6BCF928F46A9D84BB /* Settings */,
 				9512D9DC566544743DFC6015 /* Subscriptions */,
@@ -402,6 +419,8 @@
 				E190D1655FAB8214BD511241 /* DownloadActivityAttributes.swift in Sources */,
 				25F2E103DC00E7B228A90A09 /* DownloadsStore.swift in Sources */,
 				621274D7F0F49F643E1D2EE5 /* DownloadsView.swift in Sources */,
+				0A3B70E54AB06C82381557BD /* HomeStore.swift in Sources */,
+				00E475CEF387E92B14D95D06 /* HomeView.swift in Sources */,
 				5A8C054A17D41BF1C5D93FD8 /* KeychainStore.swift in Sources */,
 				E709CB01A3474F80AA7519EE /* LiveActivityController.swift in Sources */,
 				18209EFB0024841BE90BFB66 /* LoginView.swift in Sources */,
@@ -423,6 +442,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B4032AD0B022040886C70667 /* DownloadsStoreTests.swift in Sources */,
+				8804B6E093EFDA2FCA177B0D /* HomeStoreTests.swift in Sources */,
 				907E78C08CED4C47D287B702 /* LiveActivityPayloadTests.swift in Sources */,
 				0AE5F7887EBAB1A8803A93E5 /* NastoolAPIClientTests.swift in Sources */,
 				A68060076573B00E7338FA3F /* NastoolModelDecodingTests.swift in Sources */,
