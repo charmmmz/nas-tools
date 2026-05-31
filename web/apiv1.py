@@ -32,6 +32,7 @@ service = Apiv1.namespace('service', description='服务')
 subscribe = Apiv1.namespace('subscribe', description='订阅')
 rss = Apiv1.namespace('rss', description='自定义RSS')
 recommend = Apiv1.namespace('recommend', description='推荐')
+mobile = Apiv1.namespace('mobile', description='移动端')
 search = Apiv1.namespace('search', description='搜索')
 download = Apiv1.namespace('download', description='下载')
 organization = Apiv1.namespace('organization', description='整理')
@@ -1195,6 +1196,22 @@ class RecommendList(ClientResource):
         return WebAction().api_action(cmd='get_recommend', data=self.parser.parse_args())
 
 
+@mobile.route('/home')
+class MobileHome(ClientResource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('group', type=str, help='首页分组（trending/popular）', location='form', required=True)
+    parser.add_argument('filter', type=str, help='首页筛选（today/week/streaming/theaters）', location='form', required=True)
+    parser.add_argument('region', type=str, help='地区代码，如 CN/US', location='form')
+    parser.add_argument('page', type=int, help='页码', location='form', required=True)
+
+    @mobile.doc(parser=parser)
+    def post(self):
+        """
+        移动端首页海报墙
+        """
+        return WebAction().api_action(cmd='get_mobile_home', data=self.parser.parse_args())
+
+
 @rss.route('/info')
 class RssInfo(ClientResource):
     parser = reqparse.RequestParser()
@@ -1392,6 +1409,7 @@ class RssItemDownload(ClientResource):
 class MediaSearch(ClientResource):
     parser = reqparse.RequestParser()
     parser.add_argument('keyword', type=str, help='关键字', location='form', required=True)
+    parser.add_argument('searchtype', type=str, help='搜索源（tmdb/douban）', location='form')
 
     @media.doc(parser=parser)
     def post(self):

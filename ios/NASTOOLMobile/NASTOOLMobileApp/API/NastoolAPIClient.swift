@@ -1,0 +1,293 @@
+import Foundation
+
+final class NastoolAPIClient: @unchecked Sendable {
+    let baseURL: URL
+
+    private let session: URLSession
+    private let token: String?
+    private let decoder: JSONDecoder
+
+    init(
+        baseURL: URL,
+        session: URLSession = .shared,
+        token: String? = nil,
+        decoder: JSONDecoder = JSONDecoder()
+    ) {
+        self.baseURL = baseURL
+        self.session = session
+        self.token = token
+        self.decoder = decoder
+    }
+
+    func withToken(_ token: String) -> NastoolAPIClient {
+        NastoolAPIClient(baseURL: baseURL, session: session, token: token, decoder: decoder)
+    }
+
+    func makeFormRequest(path: String, fields: [String: String?] = [:], includeAuth: Bool = true) throws -> URLRequest {
+        var request = URLRequest(url: try endpointURL(path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if includeAuth, let token, !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "Authorization")
+        }
+        request.httpBody = formEncoded(fields: fields)
+        return request
+    }
+
+    func makeWebSocketRequest(path: String, includeAuth: Bool = true) throws -> URLRequest {
+        let httpURL = try endpointURL(path: path)
+        guard var components = URLComponents(url: httpURL, resolvingAgainstBaseURL: false) else {
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        switch components.scheme?.lowercased() {
+        case "https":
+            components.scheme = "wss"
+        case "http":
+            components.scheme = "ws"
+        default:
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        guard let url = components.url else {
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        var request = URLRequest(url: url)
+        if includeAuth, let token, !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "Authorization")
+        }
+        return request
+    }
+
+    func postForm<Response: Decodable>(
+        path: String,
+        fields: [String: String?] = [:],
+        includeAuth: Bool = true
+    ) async throws -> Response {
+        let request = try makeFormRequest(path: path, fields: fields, includeAuth: includeAuth)
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NastoolAPIError.invalidResponse
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw NastoolAPIError.httpStatus(httpResponse.statusCode)
+        }
+        return try decoder.decode(Response.self, from: data)
+    }
+
+    func login(username: String, password: String) async throws -> LoginResponse {
+        try await postForm(
+            path: "/api/v1/user/login",
+            fields: [
+                "username": username,
+                "password": password
+            ],
+            includeAuth: false
+        )
+    }
+
+    func fetchDownloading() async throws -> NastoolResultResponse<[DownloadTask]> {
+        try await postForm(path: "/api/v1/download/now")
+    }
+
+    func downloadSnapshots() -> AsyncThrowingStream<[DownloadTask], Error> {
+        AsyncThrowingStream { continuation in
+            let request: URLRequest
+            do {
+                request = try makeWebSocketRequest(path: "/api/v1/mobile/downloads/ws")
+            } catch {
+                continuation.finish(throwing: error)
+                return
+            }
+
+            let socket = session.webSocketTask(with: request)
+            let receiveTask = Task { [decoder] in
+                do {
+                    while !Task.isCancelled {
+                        let message = try await socket.receive()
+                        let data: Data
+                        switch message {
+                        case .data(let messageData):
+                            data = messageData
+                        case .string(let messageString):
+                            data = Data(messageString.utf8)
+                        @unknown default:
+                            continue
+                        }
+
+                        let envelope = try decoder.decode(WebSocketEventEnvelope.self, from: data)
+                        guard envelope.type == "downloads.snapshot" else {
+                            continue
+                        }
+                        let event = try decoder.decode(DownloadSnapshotEvent.self, from: data)
+                        continuation.yield(event.data.result)
+                    }
+                    continuation.finish()
+                } catch {
+                    if Task.isCancelled {
+                        continuation.finish()
+                    } else {
+                        continuation.finish(throwing: error)
+                    }
+                }
+            }
+
+            socket.resume()
+            continuation.onTermination = { @Sendable _ in
+                receiveTask.cancel()
+                socket.cancel(with: .goingAway, reason: nil)
+            }
+        }
+    }
+
+    func fetchDownloadInfo(ids: [String]) async throws -> DownloadInfoResponse {
+        try await postForm(path: "/api/v1/download/info", fields: ["ids": ids.joined(separator: ",")])
+    }
+
+    func startDownload(id: String) async throws -> NastoolCommandResponse {
+        try await postForm(path: "/api/v1/download/start", fields: ["id": id])
+    }
+
+    func stopDownload(id: String) async throws -> NastoolCommandResponse {
+        try await postForm(path: "/api/v1/download/stop", fields: ["id": id])
+    }
+
+    func removeDownload(id: String) async throws -> NastoolCommandResponse {
+        try await postForm(path: "/api/v1/download/remove", fields: ["id": id])
+    }
+
+    func fetchMediaCandidates(keyword: String, source: String? = "tmdb") async throws -> NastoolResultResponse<[MediaCandidate]> {
+        try await postForm(
+            path: "/api/v1/media/search",
+            fields: [
+                "keyword": keyword,
+                "searchtype": source
+            ]
+        )
+    }
+
+    func fetchHomeFeed(
+        group: HomeFeedGroup,
+        filter: HomeFeedFilter,
+        region: String?,
+        page: Int
+    ) async throws -> HomeFeedResponse {
+        try await postForm(
+            path: "/api/v1/mobile/home",
+            fields: [
+                "group": group.rawValue,
+                "filter": filter.rawValue,
+                "page": String(page),
+                "region": region
+            ]
+        )
+    }
+
+    func searchKeyword(
+        _ keyword: String,
+        quickMode: Bool = true,
+        tmdbID: String? = nil,
+        mediaType: String? = nil
+    ) async throws -> NastoolCommandResponse {
+        try await postForm(
+            path: "/api/v1/search/keyword",
+            fields: [
+                "search_word": keyword,
+                "unident": quickMode ? "1" : nil,
+                "tmdbid": tmdbID,
+                "media_type": mediaType
+            ]
+        )
+    }
+
+    func fetchSearchResults() async throws -> SearchResultsResponse {
+        try await postForm(path: "/api/v1/search/result")
+    }
+
+    func downloadSearchResult(id: String, directory: String? = nil, setting: String? = nil) async throws -> NastoolCommandResponse {
+        try await postForm(
+            path: "/api/v1/download/search",
+            fields: [
+                "id": id,
+                "dir": directory,
+                "setting": setting
+            ]
+        )
+    }
+
+    func fetchMovieSubscriptions() async throws -> NastoolResultResponse<[String: SubscriptionItem]> {
+        try await postForm(path: "/api/v1/subscribe/movie/list")
+    }
+
+    func fetchTVSubscriptions() async throws -> NastoolResultResponse<[String: SubscriptionItem]> {
+        try await postForm(path: "/api/v1/subscribe/tv/list")
+    }
+
+    func addSubscription(_ request: AddSubscriptionRequest) async throws -> NastoolCommandResponse {
+        try await postForm(path: "/api/v1/subscribe/add", fields: request.formFields)
+    }
+
+    func removeSubscription(id: String, mediaType: AddSubscriptionRequest.MediaType) async throws -> NastoolCommandResponse {
+        try await postForm(
+            path: "/api/v1/subscribe/delete",
+            fields: [
+                "rssid": id,
+                "type": mediaType.rawValue
+            ]
+        )
+    }
+
+    private func endpointURL(path: String) throws -> URL {
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+            throw NastoolAPIError.invalidBaseURL
+        }
+
+        let basePath = components.path.trimmingSlashes
+        let endpointPath = path.trimmingSlashes
+        if basePath.isEmpty {
+            components.path = "/" + endpointPath
+        } else {
+            components.path = "/" + [basePath, endpointPath].joined(separator: "/")
+        }
+
+        guard let url = components.url else {
+            throw NastoolAPIError.invalidBaseURL
+        }
+        return url
+    }
+
+    private func formEncoded(fields: [String: String?]) -> Data {
+        let body = fields
+            .compactMap { key, value -> (String, String)? in
+                guard let value else {
+                    return nil
+                }
+                return (key, value)
+            }
+            .sorted { lhs, rhs in lhs.0 < rhs.0 }
+            .map { key, value in
+                "\(percentEncode(key))=\(percentEncode(value))"
+            }
+            .joined(separator: "&")
+
+        return Data(body.utf8)
+    }
+
+    private func percentEncode(_ value: String) -> String {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: ":#[]@!$&'()*+,;=")
+        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    }
+}
+
+private struct WebSocketEventEnvelope: Decodable {
+    let type: String
+}
+
+private extension String {
+    var trimmingSlashes: String {
+        trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+}

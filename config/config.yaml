@@ -295,6 +295,21 @@ douban:
   # 【自动添加RSS开关】：站点检索找不到的记录是否自动添加RSS订阅（可实现未搜索到的自动追更）
   auto_rss: true
 
+# 【配置Trakt账号信息】：配置后可在探索中查看Trakt个性推荐
+trakt:
+  # 【Client ID】：在 https://trakt.tv/oauth/applications 创建应用后获取
+  client_id:
+  # 【Client Secret】：在Trakt应用详情中获取
+  client_secret:
+  # 【Redirect URI】：刷新Token时使用，设备授权可保持默认值
+  redirect_uri: urn:ietf:wg:oauth:2.0:oob
+  # 【Access Token】：通过WEB页面授权后自动保存
+  access_token:
+  # 【Refresh Token】：通过WEB页面授权后自动保存
+  refresh_token:
+  # 【Token过期时间】：Unix时间戳，通过WEB页面授权后自动保存
+  expires_at:
+
 # 【配置字幕自动下载】
 subtitle:
   # 【下载渠道】：opensubtitles、chinesesubfinder

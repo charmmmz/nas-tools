@@ -1,0 +1,169 @@
+{% set TraktConfig = Config.trakt or {} %}
+{% set Authorized = TraktConfig.access_token and TraktConfig.refresh_token %}
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="page-title">
+          Trakt
+        </h2>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards">
+      <div class="col-md-12">
+        <div class="card" id="config_trakt">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-xl-4">
+                <div class="mb-3">
+                  <label class="form-label required">Client ID <span class="form-help"
+                                                                       title="在Trakt应用页面创建应用后获取"
+                                                                       data-bs-toggle="tooltip">?</span></label>
+                  <input type="text" value="{{ TraktConfig.client_id or '' }}" class="form-control"
+                         id="trakt.client_id" autocomplete="off">
+                </div>
+              </div>
+              <div class="col-xl-4">
+                <div class="mb-3">
+                  <label class="form-label required">Client Secret <span class="form-help"
+                                                                           title="在Trakt应用详情中获取"
+                                                                           data-bs-toggle="tooltip">?</span></label>
+                  <input type="password" value="{{ TraktConfig.client_secret or '' }}" class="form-control"
+                         id="trakt.client_secret" autocomplete="off">
+                </div>
+              </div>
+              <div class="col-xl-4">
+                <div class="mb-3">
+                  <label class="form-label">Redirect URI <span class="form-help"
+                                                               title="设备授权可保持默认值"
+                                                               data-bs-toggle="tooltip">?</span></label>
+                  <input type="text" value="{{ TraktConfig.redirect_uri or 'urn:ietf:wg:oauth:2.0:oob' }}"
+                         class="form-control" id="trakt.redirect_uri" autocomplete="off">
+                </div>
+              </div>
+            </div>
+            <input type="hidden" value="{{ TraktConfig.access_token or '' }}" id="trakt.access_token">
+            <input type="hidden" value="{{ TraktConfig.refresh_token or '' }}" id="trakt.refresh_token">
+            <input type="hidden" value="{{ TraktConfig.expires_at or '' }}" id="trakt.expires_at">
+            <input type="hidden" value="" id="trakt_device_code">
+            <div class="row">
+              <div class="col-xl-4">
+                <div class="mb-3">
+                  <label class="form-label">授权状态</label>
+                  <div>
+                    {% if Authorized %}
+                      <span class="badge bg-green">已授权</span>
+                    {% else %}
+                      <span class="badge bg-yellow">未授权</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-xl-4">
+                <div class="mb-3">
+                  <label class="form-label">Token过期时间</label>
+                  <input type="text" value="{{ TraktConfig.expires_at or '' }}" class="form-control" readonly>
+                </div>
+              </div>
+            </div>
+            <div class="alert alert-info d-none" id="trakt_device_code_panel">
+              <div class="mb-2">
+                <a id="trakt_verification_url" href="#" target="_blank"></a>
+              </div>
+              <div class="h2 mb-0" id="trakt_user_code"></div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="row align-items-center">
+              <div class="col-auto">
+                <a id="trakt_auth_btn" href="javascript:start_trakt_auth()" class="btn">
+                  开始授权
+                </a>
+                <a id="trakt_finish_btn" href="javascript:finish_trakt_auth()" class="btn ms-2 disabled">
+                  完成授权
+                </a>
+                <a href="javascript:clear_trakt_auth()" class="btn ms-2">
+                  清除授权
+                </a>
+              </div>
+              <div class="col"></div>
+              <div class="col-auto">
+                <a id="trakt_save_btn" href="javascript:save_trakt_config()" class="btn btn-primary">
+                  保存
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+  function save_trakt_config(func) {
+    const params = input_select_GetVal("config_trakt");
+    $("#trakt_save_btn").attr("disabled", true).text("保存中...");
+    ajax_post("update_config", params, function (ret) {
+      $("#trakt_save_btn").attr("disabled", false).text("保存");
+      if (func) {
+        func();
+      }
+    });
+  }
+
+  function start_trakt_auth() {
+    $("#trakt_auth_btn").attr("disabled", true).text("授权中...");
+    save_trakt_config(function () {
+      ajax_post("trakt_device_code", {}, function (ret) {
+        $("#trakt_auth_btn").attr("disabled", false).text("开始授权");
+        if (ret.code !== 0) {
+          show_fail_modal(ret.retmsg || "Trakt授权失败！");
+          return;
+        }
+        const data = ret.data || {};
+        $("#trakt_device_code").val(data.device_code || "");
+        $("#trakt_verification_url")
+          .attr("href", data.verification_url || "https://trakt.tv/activate")
+          .text(data.verification_url || "https://trakt.tv/activate");
+        $("#trakt_user_code").text(data.user_code || "");
+        $("#trakt_device_code_panel").removeClass("d-none");
+        $("#trakt_finish_btn").removeClass("disabled");
+      });
+    });
+  }
+
+  function finish_trakt_auth() {
+    const device_code = $("#trakt_device_code").val();
+    if (!device_code) {
+      show_fail_modal("请先开始Trakt授权！");
+      return;
+    }
+    $("#trakt_finish_btn").addClass("disabled").text("确认中...");
+    ajax_post("trakt_device_token", {"device_code": device_code}, function (ret) {
+      $("#trakt_finish_btn").removeClass("disabled").text("完成授权");
+      if (ret.code === 0) {
+        show_success_modal(ret.retmsg || "Trakt授权成功！", function () {
+          navmenu("trakt");
+        });
+      } else {
+        show_fail_modal(ret.retmsg || "Trakt授权失败！");
+      }
+    });
+  }
+
+  function clear_trakt_auth() {
+    show_ask_modal("是否清除Trakt授权？", function () {
+      ajax_post("trakt_clear_auth", {}, function (ret) {
+        show_success_modal(ret.retmsg || "Trakt授权已清除！", function () {
+          navmenu("trakt");
+        });
+      });
+    });
+  }
+</script>

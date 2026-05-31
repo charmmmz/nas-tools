@@ -910,6 +910,34 @@ class ModuleConf(object):
                             {'value': 'hi', 'name': '印地语'}]
             }
         },
+        "trakt": {
+            "ignore_watched": {
+                "name": "看过",
+                "type": "dropdown",
+                "options": [{'value': '', 'name': '包含看过'},
+                            {'value': 'true', 'name': '排除看过'}]
+            },
+            "ignore_collected": {
+                "name": "收藏",
+                "type": "dropdown",
+                "options": [{'value': '', 'name': '包含已收藏'},
+                            {'value': 'true', 'name': '排除已收藏'}]
+            },
+            "ignore_watchlisted": {
+                "name": "片单",
+                "type": "dropdown",
+                "options": [{'value': '', 'name': '包含已想看'},
+                            {'value': 'true', 'name': '排除已想看'}]
+            },
+            "watch_window": {
+                "name": "周期",
+                "type": "dropdown",
+                "options": [{'value': '', 'name': '默认'},
+                            {'value': '7', 'name': '7天'},
+                            {'value': '30', 'name': '30天'},
+                            {'value': '90', 'name': '90天'}]
+            }
+        },
         "douban_movie": {
             "sort": {
                 "name": "排序",
