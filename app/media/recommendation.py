@@ -41,8 +41,6 @@ def hydrate_recommendation_posters(cards, source, media=None):
 
 
 def __hydrate_trakt_poster(card, media):
-    if card.get("image"):
-        return
     tmdbid = card.get("tmdbid") or card.get("id")
     if not __is_numeric_id(tmdbid):
         return
@@ -136,4 +134,7 @@ def __extract_tmdb_og_image(html_text):
     if html is None:
         return ""
     images = html.xpath(__OG_IMAGE_XPATH)
-    return images[0] if images else ""
+    if not images:
+        return ""
+    return images[0].replace("https://media.themoviedb.org/t/p/",
+                             "https://image.tmdb.org/t/p/")
