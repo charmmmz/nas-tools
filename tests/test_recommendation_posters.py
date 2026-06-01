@@ -26,8 +26,9 @@ class RecommendationPosterHydrationTest(TestCase):
         self.assertEqual(cards[0]["image"], "https://image.tmdb.org/t/p/w500/poster.jpg")
         media.get_tmdb_info.assert_called_once()
 
-    def test_trakt_card_keeps_existing_source_image(self):
+    def test_trakt_card_prefers_tmdb_poster_over_existing_source_image(self):
         media = Mock()
+        media.get_tmdb_info.return_value = {"poster_path": "/poster.jpg"}
         cards = [{
             "id": 123,
             "type": "MOV",
@@ -40,8 +41,31 @@ class RecommendationPosterHydrationTest(TestCase):
 
         hydrate_recommendation_posters(cards, source="trakt", media=media)
 
+        self.assertEqual(cards[0]["image"], "https://image.tmdb.org/t/p/w500/poster.jpg")
+        media.get_tmdb_info.assert_called_once()
+
+    def test_trakt_card_keeps_existing_source_image_when_tmdb_lookup_missing(self):
+        media = Mock()
+        media.get_tmdb_info.return_value = None
+        response = Mock(status_code=404)
+        response.text = ""
+        cards = [{
+            "id": 123456789,
+            "type": "MOV",
+            "media_type": "电影",
+            "title": "Movie",
+            "year": "2026",
+            "image": "https://trakt.example/poster.jpg",
+            "site": "Trakt",
+        }]
+
+        with patch("app.media.recommendation.RequestUtils") as request_utils:
+            request_utils.return_value.get_res.return_value = response
+
+            hydrate_recommendation_posters(cards, source="trakt", media=media)
+
         self.assertEqual(cards[0]["image"], "https://trakt.example/poster.jpg")
-        media.get_tmdb_info.assert_not_called()
+        media.get_tmdb_info.assert_called_once()
 
     def test_trakt_card_uses_tmdb_web_poster_when_api_lookup_missing(self):
         media = Mock()
@@ -68,7 +92,7 @@ class RecommendationPosterHydrationTest(TestCase):
 
             hydrate_recommendation_posters(cards, source="trakt", media=media)
 
-        self.assertEqual(cards[0]["image"], "https://media.themoviedb.org/t/p/w500/fallback.jpg")
+        self.assertEqual(cards[0]["image"], "https://image.tmdb.org/t/p/w500/fallback.jpg")
         media.get_tmdb_info.assert_called_once()
 
     def test_douban_card_uses_strict_tmdb_match_when_available(self):
