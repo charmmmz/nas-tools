@@ -1,6 +1,6 @@
 [submodule "third_party/qbittorrent-api"]
 	path = third_party/qbittorrent-api
-	url = https://github.com/rmartin16/qbittorrent-api
+	url = https://github.com/charmmmz/qbittorrent-api
 [submodule "third_party/transmission-rpc"]
 	path = third_party/transmission-rpc
 	url = https://github.com/Trim21/transmission-rpc
