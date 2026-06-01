@@ -6,14 +6,24 @@ on:
     branches:
       - main
     paths:
-      - version.py
-      - package_list.txt
-      - requirements.txt
-      - third_party.txt
-      - docker/Dockerfile
-      - docker/entrypoint.sh
       - .dockerignore
       - .github/workflows/build.yml
+      - app/**
+      - build_sites.py
+      - check_config.py
+      - config.py
+      - config/**
+      - db_scripts/**
+      - dbscript_gen.py
+      - docker/**
+      - log.py
+      - package_list.txt
+      - requirements.txt
+      - run.py
+      - third_party.txt
+      - third_party/**
+      - version.py
+      - web/**
 
 permissions:
   contents: read
