@@ -67,11 +67,21 @@
   // 过滤参数
   Params = {{ Params|safe or "{}" }}
 
+  // Trakt/Douban列表使用更适合推荐浏览的宽卡片
+  var DoubanSubTypes = ["dbom", "dbhm", "dbht", "dbdh", "dbnm", "dbtop", "dbzy", "dbct", "dbgt"];
+  var UseRecommendationCard = Type === "TRAKT" || Type === "DOUBANTAG" || DoubanSubTypes.includes(SubType);
+  $("#recommend_content")
+    .removeClass("grid-media-card grid-recommendation-card")
+    .addClass(UseRecommendationCard ? "grid-recommendation-card" : "grid-media-card");
+
   // 插入N个占位卡片 代替loading动画
   var page_card_num = 20;
   function add_loading_card_placeholder() {
     for (let i = 0; i < page_card_num; i++) {
-      let html = '<div id="loading_card_placeholder_' + i + '"><normal-card-placeholder></normal-card-placeholder></div>';
+      let placeholder = UseRecommendationCard
+        ? '<recommendation-card-placeholder></recommendation-card-placeholder>'
+        : '<normal-card-placeholder></normal-card-placeholder>';
+      let html = '<div id="loading_card_placeholder_' + i + '">' + placeholder + '</div>';
       $("#recommend_content").append(html);
     }
   }
@@ -111,28 +121,49 @@
         page_card_num = ret.Items.length;
       } else {
         if (CurrentPage === 1) {
-          $("#recommend_content").removeClass("grid-media-card").html($("#no_recommend_html").text());
+          $("#recommend_content").removeClass("grid-media-card grid-recommendation-card").html($("#no_recommend_html").text());
         }
       }
       del_loading_card_placeholder();
       // 插入HTML
       for (let i = 0; i < ret.Items.length; i++) {
         let item = ret.Items[i];
-        let html = `<normal-card
-                      card-tmdbId="${item.id}"
-                      card-mediatype="${item.type}"
-                      card-showSub="1"
-                      card-image="${item.image}"
-                      card-weekday="${item.weekday}"
-                      card-fav="${item.fav}"
-                      card-vote="${item.vote}"
-                      card-year="${item.year}"
-                      card-title="${item.title}"
-                      card-overview="${item.overview}"
-                      card-restype="${item.media_type}"
-                      card-date="${item.date}"
-                      card-site="${item.site}"
-                    ></normal-card>`;
+        let detail_id = item.tmdbid || item.id;
+        let html;
+        if (UseRecommendationCard) {
+          html = `<recommendation-card
+                    card-tmdbid="${detail_id}"
+                    card-sourceid="${item.id}"
+                    card-mediatype="${item.type}"
+                    card-showSub="1"
+                    card-image="${item.image}"
+                    card-weekday="${item.weekday}"
+                    card-fav="${item.fav}"
+                    card-vote="${item.vote}"
+                    card-year="${item.year}"
+                    card-title="${item.title}"
+                    card-overview="${item.overview}"
+                    card-restype="${item.media_type}"
+                    card-date="${item.date}"
+                    card-site="${item.site}"
+                  ></recommendation-card>`;
+        } else {
+          html = `<normal-card
+                    card-tmdbId="${item.id}"
+                    card-mediatype="${item.type}"
+                    card-showSub="1"
+                    card-image="${item.image}"
+                    card-weekday="${item.weekday}"
+                    card-fav="${item.fav}"
+                    card-vote="${item.vote}"
+                    card-year="${item.year}"
+                    card-title="${item.title}"
+                    card-overview="${item.overview}"
+                    card-restype="${item.media_type}"
+                    card-date="${item.date}"
+                    card-site="${item.site}"
+                  ></normal-card>`;
+        }
         $("#recommend_content").append(html);
       }
       window_history();

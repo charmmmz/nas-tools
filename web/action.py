@@ -25,6 +25,7 @@ from app.helper import DbHelper, ProgressHelper, ThreadHelper, \
     MetaHelper, DisplayHelper, WordsHelper, CookieCloudHelper
 from app.indexer import Indexer
 from app.media import Category, Media, Bangumi, DouBan, Trakt
+from app.media.recommendation import hydrate_recommendation_posters
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
 from app.message import Message, MessageCenter
@@ -2332,6 +2333,7 @@ class WebAction:
             CurrentPage = int(CurrentPage)
 
         res_list = []
+        poster_source = ""
         if Type in ['MOV', 'TV']:
             if SubType == "hm":
                 # TMDB热门电影
@@ -2348,30 +2350,39 @@ class WebAction:
             elif SubType == "dbom":
                 # 豆瓣正在上映
                 res_list = DouBan().get_douban_online_movie(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbhm":
                 # 豆瓣热门电影
                 res_list = DouBan().get_douban_hot_movie(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbht":
                 # 豆瓣热门电视剧
                 res_list = DouBan().get_douban_hot_tv(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbdh":
                 # 豆瓣热门动画
                 res_list = DouBan().get_douban_hot_anime(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbnm":
                 # 豆瓣最新电影
                 res_list = DouBan().get_douban_new_movie(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbtop":
                 # 豆瓣TOP250电影
                 res_list = DouBan().get_douban_top250_movie(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbzy":
                 # 豆瓣最新电视剧
                 res_list = DouBan().get_douban_hot_show(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbct":
                 # 华语口碑剧集榜
                 res_list = DouBan().get_douban_chinese_weekly_tv(CurrentPage)
+                poster_source = "douban"
             elif SubType == "dbgt":
                 # 全球口碑剧集榜
                 res_list = DouBan().get_douban_weekly_tv_global(CurrentPage)
+                poster_source = "douban"
             elif SubType == "sim":
                 # 相似推荐
                 TmdbId = data.get("tmdbid")
@@ -2435,6 +2446,7 @@ class WebAction:
                                                    sort=sort,
                                                    tags=tags,
                                                    page=CurrentPage)
+            poster_source = "douban"
         elif Type == "TRAKT":
             # Trakt个性推荐
             params = data.get("params") or {}
@@ -2444,8 +2456,11 @@ class WebAction:
             elif SubType == "show":
                 res_list = Trakt().get_show_recommendations(page=CurrentPage,
                                                             params=params)
+            poster_source = "trakt"
 
         # 补充存在与订阅状态
+        if poster_source:
+            hydrate_recommendation_posters(res_list, source=poster_source)
         filetransfer = FileTransfer()
         for res in res_list:
             fav, rssid = filetransfer.get_media_exists_flag(mtype=res.get("type") or Type,
@@ -2470,6 +2485,7 @@ class WebAction:
         filter_key = (data.get("filter") or "today").lower()
         page = int(data.get("page") or 1)
         region = (data.get("region") or "").upper()
+        language = WebAction.__normalize_tmdb_language(data.get("language"))
 
         if group not in ["trending", "popular"]:
             return {"code": 1, "msg": "首页分组无效"}
@@ -2481,8 +2497,12 @@ class WebAction:
             return {"code": 1, "msg": "热门筛选无效"}
         if region and not re.fullmatch(r"[A-Z]{2}", region):
             return {"code": 1, "msg": "地区代码无效"}
+        if data.get("language") and language is None:
+            return {"code": 1, "msg": "语言代码无效"}
 
         media = Media()
+        if language and getattr(media, "tmdb", None):
+            media.tmdb.language = language
         if group == "trending":
             region = ""
             time_window = "day" if filter_key == "today" else "week"
@@ -2524,10 +2544,39 @@ class WebAction:
             "group": group,
             "filter": filter_key,
             "region": region,
+            "language": language or getattr(getattr(media, "tmdb", None), "language", ""),
             "page": page,
             "has_more": bool(items),
             "items": items
         }
+
+    @staticmethod
+    def __normalize_tmdb_language(language):
+        """
+        归一化移动端传入的系统语言为 TMDB language 参数格式。
+        """
+        if not language:
+            return ""
+
+        parts = [part for part in str(language).strip().replace("_", "-").split("-") if part]
+        if not parts:
+            return ""
+
+        lang = parts[0].lower()
+        if not re.fullmatch(r"[a-z]{2,3}", lang):
+            return None
+
+        script = next((part.lower() for part in parts[1:] if re.fullmatch(r"[A-Za-z]{4}", part)), "")
+        region = next((part.upper() for part in parts[1:] if re.fullmatch(r"[A-Za-z]{2}", part)), "")
+
+        if lang == "zh":
+            if region:
+                return f"{lang}-{region}"
+            if script == "hant":
+                return "zh-TW"
+            return "zh-CN"
+
+        return f"{lang}-{region}" if region else lang
 
     @staticmethod
     def __interleave_media_items(first, second):

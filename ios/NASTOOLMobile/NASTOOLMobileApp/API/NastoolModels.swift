@@ -377,8 +377,8 @@ struct HomePosterItem: Decodable, Equatable, Hashable, Identifiable {
         posterPath = try container.decodeIfPresent(String.self, forKey: .posterPath)
         backdropPath = try container.decodeIfPresent(String.self, forKey: .backdropPath)
         overview = try container.decodeIfPresent(String.self, forKey: .overview)
-        isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
-        rssID = try container.decodeFlexibleStringIfPresent(forKey: .rssID)
+        isFavorite = try container.decodeFlexibleBoolIfPresent(forKey: .isFavorite) ?? false
+        rssID = try container.decodeNonEmptyFlexibleStringIfPresent(forKey: .rssID)
     }
 }
 
@@ -766,6 +766,18 @@ extension KeyedDecodingContainer {
         return try decodeFlexibleString(forKey: key)
     }
 
+    func decodeNonEmptyFlexibleStringIfPresent(forKey key: Key) throws -> String? {
+        guard let value = try decodeFlexibleStringIfPresent(forKey: key) else {
+            return nil
+        }
+
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedValue.isEmpty || trimmedValue == "0" {
+            return nil
+        }
+        return trimmedValue
+    }
+
     func decodeFlexibleDoubleIfPresent(forKey key: Key) throws -> Double? {
         if !contains(key) {
             return nil
@@ -794,6 +806,34 @@ extension KeyedDecodingContainer {
         }
         if let doubleValue = try? decode(Double.self, forKey: key) {
             return Int(doubleValue)
+        }
+        return nil
+    }
+
+    func decodeFlexibleBoolIfPresent(forKey key: Key) throws -> Bool? {
+        if !contains(key) {
+            return nil
+        }
+        if try decodeNil(forKey: key) {
+            return nil
+        }
+        if let boolValue = try? decode(Bool.self, forKey: key) {
+            return boolValue
+        }
+        if let intValue = try? decode(Int.self, forKey: key) {
+            return intValue != 0
+        }
+        if let stringValue = try? decode(String.self, forKey: key) {
+            let normalized = stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if ["true", "yes", "y"].contains(normalized) {
+                return true
+            }
+            if ["false", "no", "n", ""].contains(normalized) {
+                return false
+            }
+            if let intValue = Int(normalized) {
+                return intValue != 0
+            }
         }
         return nil
     }

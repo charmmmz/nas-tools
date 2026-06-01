@@ -3,6 +3,8 @@ __pycache__
 *.log
 *.pid
 test.py
+.superpowers/
+output/
 
 ### IntelliJ IDEA ###
 .idea

@@ -1202,6 +1202,7 @@ class MobileHome(ClientResource):
     parser.add_argument('group', type=str, help='首页分组（trending/popular）', location='form', required=True)
     parser.add_argument('filter', type=str, help='首页筛选（today/week/streaming/theaters）', location='form', required=True)
     parser.add_argument('region', type=str, help='地区代码，如 CN/US', location='form')
+    parser.add_argument('language', type=str, help='语言代码，如 zh-CN/en-US', location='form')
     parser.add_argument('page', type=int, help='页码', location='form', required=True)
 
     @mobile.doc(parser=parser)

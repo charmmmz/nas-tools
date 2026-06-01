@@ -6,6 +6,7 @@ protocol HomeAPI: Sendable {
         group: HomeFeedGroup,
         filter: HomeFeedFilter,
         region: String?,
+        language: String?,
         page: Int
     ) async throws -> HomeFeedResponse
 }
@@ -85,6 +86,7 @@ struct UserDefaultsHomeRegionStorage: HomeRegionStorage {
 final class HomeStore {
     private let api: HomeAPI
     private let localeRegionProvider: () -> String?
+    private let localeLanguageProvider: () -> String?
     private let regionStorage: HomeRegionStorage
     private var loadGeneration = 0
 
@@ -107,10 +109,14 @@ final class HomeStore {
         localeRegionProvider: @escaping () -> String? = {
             Locale.autoupdatingCurrent.region?.identifier
         },
+        localeLanguageProvider: @escaping () -> String? = {
+            HomeStore.systemLanguageCode()
+        },
         regionStorage: HomeRegionStorage = UserDefaultsHomeRegionStorage()
     ) {
         self.api = api
         self.localeRegionProvider = localeRegionProvider
+        self.localeLanguageProvider = localeLanguageProvider
         self.regionStorage = regionStorage
 
         if let storedRegionCode = regionStorage.loadRegionCode() {
@@ -136,6 +142,10 @@ final class HomeStore {
         case .region(let code):
             HomeRegionSelection.normalizedRegionCode(code)
         }
+    }
+
+    var requestLanguage: String? {
+        Self.normalizedLanguageCode(localeLanguageProvider())
     }
 
     var requestRegion: String? {
@@ -184,6 +194,7 @@ final class HomeStore {
                 group: selectedGroup,
                 filter: selectedFilter,
                 region: requestRegion,
+                language: requestLanguage,
                 page: page
             )
 
@@ -216,5 +227,49 @@ final class HomeStore {
         case .popular:
             .streaming
         }
+    }
+
+    static func systemLanguageCode() -> String? {
+        normalizedLanguageCode(Locale.preferredLanguages.first ?? Locale.autoupdatingCurrent.identifier)
+    }
+
+    static func normalizedLanguageCode(_ code: String?) -> String? {
+        guard let code else {
+            return nil
+        }
+
+        let parts = code
+            .replacingOccurrences(of: "_", with: "-")
+            .split(separator: "-")
+            .map(String.init)
+
+        guard let language = parts.first?.lowercased(),
+              language.count >= 2,
+              language.count <= 3,
+              language.allSatisfy(\.isLetter) else {
+            return nil
+        }
+
+        let script = parts.dropFirst().first { part in
+            part.count == 4 && part.allSatisfy(\.isLetter)
+        }?.lowercased()
+        let region = parts.dropFirst().first { part in
+            part.count == 2 && part.allSatisfy(\.isLetter)
+        }?.uppercased()
+
+        if language == "zh" {
+            if let region {
+                return "zh-\(region)"
+            }
+            if script == "hant" {
+                return "zh-TW"
+            }
+            return "zh-CN"
+        }
+
+        if let region {
+            return "\(language)-\(region)"
+        }
+        return language
     }
 }
