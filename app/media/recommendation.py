@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 
+from functools import lru_cache
+
+from lxml import etree
+
 import log
 from app.media.media import Media
+from app.utils import RequestUtils
 from app.utils.types import MediaType
 from config import TMDB_IMAGE_W500_URL
+
+__OG_IMAGE_XPATH = (
+    "//meta[translate(@property, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', "
+    "'abcdefghijklmnopqrstuvwxyz')='og:image']/@content"
+)
 
 
 def hydrate_recommendation_posters(cards, source, media=None):
@@ -34,10 +44,15 @@ def __hydrate_trakt_poster(card, media):
     tmdbid = card.get("tmdbid") or card.get("id")
     if not __is_numeric_id(tmdbid):
         return
-    tmdbinfo = media.get_tmdb_info(mtype=__card_media_type(card), tmdbid=tmdbid)
+    mtype = __card_media_type(card)
+    tmdbinfo = media.get_tmdb_info(mtype=mtype, tmdbid=tmdbid)
     poster_path = (tmdbinfo or {}).get("poster_path")
     if poster_path:
         card["image"] = TMDB_IMAGE_W500_URL % poster_path
+        return
+    poster_url = __get_tmdb_web_poster(mtype=mtype, tmdbid=tmdbid)
+    if poster_url:
+        card["image"] = poster_url
 
 
 def __hydrate_douban_poster(card, media):
@@ -75,3 +90,30 @@ def __is_numeric_id(value):
         return True
     except (TypeError, ValueError):
         return False
+
+
+@lru_cache(maxsize=512)
+def __get_tmdb_web_poster(mtype, tmdbid):
+    if mtype == MediaType.MOVIE:
+        media_path = "movie"
+    elif mtype == MediaType.TV:
+        media_path = "tv"
+    else:
+        return ""
+
+    res = RequestUtils(timeout=5).get_res(
+        url="https://www.themoviedb.org/%s/%s" % (media_path, int(tmdbid))
+    )
+    if not res or res.status_code != 200 or not res.text:
+        return ""
+    return __extract_tmdb_og_image(res.text)
+
+
+def __extract_tmdb_og_image(html_text):
+    if not html_text:
+        return ""
+    html = etree.HTML(html_text)
+    if html is None:
+        return ""
+    images = html.xpath(__OG_IMAGE_XPATH)
+    return images[0] if images else ""
