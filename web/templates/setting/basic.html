@@ -210,6 +210,26 @@
               </div>
               <div class="col-lg">
                 <div class="mb-3">
+                  <label class="form-label required">TMDB语言 <span class="form-help"
+                                                                    title="用于TMDB标题、简介等接口数据，修改后新抓取的数据会使用该语言"
+                                                                    data-bs-toggle="tooltip">?</span></label>
+                  <select class="form-select" id="app.tmdb_language">
+                    <option value="zh-CN" {% if not Config.app.tmdb_language or
+                      Config.app.tmdb_language=='zh-CN' %}selected{% endif %}>简体中文
+                    </option>
+                    <option value="zh-TW" {% if Config.app.tmdb_language=='zh-TW' %}selected{% endif %}>繁体中文
+                    </option>
+                    <option value="en-US" {% if Config.app.tmdb_language=='en-US' %}selected{% endif %}>English
+                    </option>
+                    <option value="ja-JP" {% if Config.app.tmdb_language=='ja-JP' %}selected{% endif %}>日本語
+                    </option>
+                    <option value="ko-KR" {% if Config.app.tmdb_language=='ko-KR' %}selected{% endif %}>한국어
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-lg">
+                <div class="mb-3">
                   <label class="form-label required">TMDB匹配模式 <span class="form-help"
                                                                         title="正常模式下会提升识别成功率，但也可能会导致误识别率增加；严格模式可以降低误识别率，但可能导致很多文件名/种子名中年份不正确的无法被识别（特别是剧集，需要是首播年份）"
                                                                         data-bs-toggle="tooltip">?</span></label>

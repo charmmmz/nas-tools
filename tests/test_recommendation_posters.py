@@ -2,6 +2,7 @@
 
 from unittest import TestCase
 from unittest.mock import Mock, patch
+from urllib.parse import quote
 
 from app.media.recommendation import hydrate_recommendation_posters
 
@@ -106,4 +107,22 @@ class RecommendationPosterHydrationTest(TestCase):
         hydrate_recommendation_posters(cards, source="douban", media=media)
 
         self.assertEqual(cards[0]["image"], "https://douban.example/poster.jpg")
+        self.assertNotIn("tmdbid", cards[0])
+
+    def test_douban_card_proxies_douban_image_when_strict_match_missing(self):
+        media = Mock()
+        media.get_media_info.return_value = None
+        image_url = "https://img3.doubanio.com/view/photo/m_ratio_poster/public/p2932533733.webp"
+        cards = [{
+            "id": "DB:1",
+            "type": "MOV",
+            "media_type": "电影",
+            "title": "Douban Movie",
+            "year": "2026",
+            "image": image_url,
+        }]
+
+        hydrate_recommendation_posters(cards, source="douban", media=media)
+
+        self.assertEqual(cards[0]["image"], "/douban/image?url=%s" % quote(image_url, safe=""))
         self.assertNotIn("tmdbid", cards[0])

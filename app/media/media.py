@@ -51,7 +51,7 @@ class Media:
                     self.tmdb.domain = app.get("tmdb_domain")
                 self.tmdb.cache = True
                 self.tmdb.api_key = app.get('rmt_tmdbkey')
-                self.tmdb.language = 'zh'
+                self.tmdb.language = self.__tmdb_language()
                 self.tmdb.proxies = Config().get_proxies()
                 self.tmdb.debug = True
                 self.search = Search()
@@ -147,17 +147,14 @@ class Media:
         :param first_media_year: 年份，如要是季集需要是首播年份(first_air_date)
         :param media_year: 当前季集年份
         :param season_number: 季集，整数
-        :param language: 语言，默认是zh-CN
+        :param language: 语言，默认读取TMDB语言设置
         :return: TMDB的INFO，同时会将search_type赋值到media_type中
         """
         if not self.search:
             return None
         if not file_media_name:
             return None
-        if language:
-            self.tmdb.language = language
-        else:
-            self.tmdb.language = 'zh-CN'
+        self.tmdb.language = self.__tmdb_language(language)
         # TMDB检索
         info = {}
         if search_type == MediaType.MOVIE:
@@ -492,10 +489,7 @@ class Media:
         if not self.tmdb:
             log.error("【Meta】TMDB API Key 未设置！")
             return None
-        if language:
-            self.tmdb.language = language
-        else:
-            self.tmdb.language = 'zh-CN'
+        self.tmdb.language = self.__tmdb_language(language)
         if mtype == MediaType.MOVIE:
             tmdb_info = self.__get_tmdb_movie_detail(tmdbid, append_to_response)
             if tmdb_info:
@@ -512,6 +506,19 @@ class Media:
                 tmdb_info = self.__update_tmdbinfo_cn_title(tmdb_info)
 
         return tmdb_info
+
+    @staticmethod
+    def __tmdb_language(language=None):
+        if not language:
+            app = Config().get_config('app') or {}
+            language = app.get("tmdb_language") or "zh-CN"
+        language = str(language).strip().replace("_", "-")
+        if not language:
+            return "zh-CN"
+        parts = language.split("-")
+        if len(parts) == 1:
+            return "zh-CN" if parts[0].lower() == "zh" else parts[0].lower()
+        return "%s-%s" % (parts[0].lower(), parts[1].upper())
 
     def __update_tmdbinfo_cn_title(self, tmdb_info):
         """
