@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import lru_cache
+from urllib.parse import quote, urlparse
 
 from lxml import etree
 
@@ -14,6 +15,7 @@ __OG_IMAGE_XPATH = (
     "//meta[translate(@property, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', "
     "'abcdefghijklmnopqrstuvwxyz')='og:image']/@content"
 )
+__DOUBAN_IMAGE_PROXY_PATH = "/douban/image"
 
 
 def hydrate_recommendation_posters(cards, source, media=None):
@@ -62,14 +64,17 @@ def __hydrate_douban_poster(card, media):
     year = card.get("year")
     mtype = __card_media_type(card)
     if not title or not year or not mtype:
+        __proxy_douban_image(card)
         return
     media_info = media.get_media_info(title="%s %s" % (title, year),
                                       mtype=mtype,
                                       strict=True)
     if not media_info or not __is_numeric_id(getattr(media_info, "tmdb_id", None)):
+        __proxy_douban_image(card)
         return
     poster_path = getattr(media_info, "poster_path", "")
     if not poster_path:
+        __proxy_douban_image(card)
         return
     card["image"] = poster_path
     card["tmdbid"] = media_info.tmdb_id
@@ -90,6 +95,21 @@ def __is_numeric_id(value):
         return True
     except (TypeError, ValueError):
         return False
+
+
+def __proxy_douban_image(card):
+    image_url = card.get("image")
+    if not __is_douban_image_url(image_url):
+        return
+    card["image"] = "%s?url=%s" % (__DOUBAN_IMAGE_PROXY_PATH, quote(image_url, safe=""))
+
+
+def __is_douban_image_url(image_url):
+    parsed = urlparse(image_url or "")
+    hostname = parsed.hostname or ""
+    return parsed.scheme in ("http", "https") \
+        and hostname.endswith(".doubanio.com") \
+        and parsed.path.startswith("/view/photo/")
 
 
 @lru_cache(maxsize=512)

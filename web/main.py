@@ -34,7 +34,7 @@ from app.speedlimiter import SpeedLimiter
 from app.subscribe import Subscribe
 from app.sync import Sync
 from app.torrentremover import TorrentRemover
-from app.utils import DomUtils, SystemUtils, ExceptionUtils, StringUtils
+from app.utils import DomUtils, SystemUtils, ExceptionUtils, StringUtils, RequestUtils
 from app.utils.types import *
 from config import PT_TRANSFER_INTERVAL, Config
 from web.action import WebAction
@@ -77,6 +77,33 @@ def add_header(r):
     r.headers["Expires"] = "0"
     """
     return r
+
+
+@App.route('/douban/image', methods=['GET'])
+def douban_image():
+    target = request.args.get("url") or ""
+    if not __is_douban_image_url(target):
+        return make_response("", 400)
+
+    res = RequestUtils(headers={
+        "User-Agent": Config().get_ua(),
+        "Referer": "https://movie.douban.com/"
+    }, timeout=10).get_res(url=target)
+    if not res or res.status_code != 200 or not res.content:
+        return make_response("", 404)
+
+    response = make_response(res.content)
+    response.headers["Content-Type"] = res.headers.get("content-type") or "image/webp"
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+def __is_douban_image_url(url):
+    parsed = parse.urlparse(url or "")
+    hostname = parsed.hostname or ""
+    return parsed.scheme in ("http", "https") \
+        and hostname.endswith(".doubanio.com") \
+        and parsed.path.startswith("/view/photo/")
 
 
 # 定义获取登录用户的方法
