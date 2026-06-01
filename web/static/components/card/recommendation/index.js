@@ -20,18 +20,29 @@ export class RecommendationCard extends CustomElement {
     year: { attribute: "card-year" },
     site: { attribute: "card-site" },
     weekday: { attribute: "card-weekday" },
+    compact: { attribute: "card-compact" },
+    lazy: {},
   };
 
   _detail_id() {
     return this.tmdb_id || this.source_id || "";
   }
 
-  _display_site() {
-    return this.site || this.res_type || "";
+  _display_media_type() {
+    if (this.res_type) {
+      return this.res_type;
+    }
+    if (this.media_type === "MOV") {
+      return "电影";
+    }
+    if (this.media_type === "TV") {
+      return "电视剧";
+    }
+    return "";
   }
 
   _metadata() {
-    return [this.year, this.res_type, this.date].filter((item) => item).join(" · ");
+    return [this.year, this.date].filter((item) => item).join(" · ");
   }
 
   _render_vote() {
@@ -43,10 +54,10 @@ export class RecommendationCard extends CustomElement {
 
   _render_fav_state() {
     if (this.fav == "2") {
-      return html`<span class="recommendation-card-state text-green">已入库</span>`;
+      return html`<span class="recommendation-card-state recommendation-card-state-collected">已入库</span>`;
     }
     if (this.fav == "1") {
-      return html`<span class="recommendation-card-state text-red">已订阅</span>`;
+      return html`<span class="recommendation-card-state recommendation-card-state-subscribed">已订阅</span>`;
     }
     return nothing;
   }
@@ -90,23 +101,23 @@ export class RecommendationCard extends CustomElement {
   render() {
     const metadata = this._metadata();
     return html`
-      <div class="lit-recommendation-card cursor-pointer" @click=${this._open_detail}>
+      <div class="lit-recommendation-card ${this.compact == "1" ? "recommendation-card-compact" : ""} cursor-pointer" @click=${this._open_detail}>
+        ${this._render_fav_state()}
         <div class="recommendation-card-poster">
           <img class="recommendation-card-image"
                alt=""
-               src=${this.image || Golbal.noImage}
-               @error=${() => { this.image = Golbal.noImage; }}/>
+               src=${this.lazy == "1" ? "" : this.image || Golbal.noImage}
+               @error=${() => { if (this.lazy != "1") { this.image = Golbal.noImage; } }}/>
           ${this.weekday
             ? html`<span class="badge bg-orange recommendation-card-poster-badge">${this.weekday}</span>`
             : nothing}
         </div>
         <div class="recommendation-card-body">
           <div class="recommendation-card-topline">
-            ${this._display_site()
-              ? html`<span class="recommendation-card-source">${this._display_site()}</span>`
+            ${this._display_media_type()
+              ? html`<span class="recommendation-card-kind">${this._display_media_type()}</span>`
               : nothing}
             ${this._render_vote()}
-            ${this._render_fav_state()}
           </div>
           <h3 class="recommendation-card-title">${this.title}</h3>
           ${metadata ? html`<div class="recommendation-card-meta">${metadata}</div>` : nothing}

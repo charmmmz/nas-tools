@@ -4,10 +4,14 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 from urllib.parse import quote
 
+from app.media import recommendation
 from app.media.recommendation import hydrate_recommendation_posters
 
 
 class RecommendationPosterHydrationTest(TestCase):
+    def setUp(self):
+        recommendation.clear_recommendation_poster_cache()
+
     def test_trakt_card_uses_tmdb_poster_when_source_image_missing(self):
         media = Mock()
         media.get_tmdb_info.return_value = {"poster_path": "/poster.jpg"}
@@ -24,6 +28,34 @@ class RecommendationPosterHydrationTest(TestCase):
         hydrate_recommendation_posters(cards, source="trakt", media=media)
 
         self.assertEqual(cards[0]["image"], "https://image.tmdb.org/t/p/w500/poster.jpg")
+        media.get_tmdb_info.assert_called_once()
+
+    def test_trakt_card_reuses_cached_tmdb_poster(self):
+        media = Mock()
+        media.get_tmdb_info.return_value = {"poster_path": "/poster.jpg"}
+        first_cards = [{
+            "id": 123,
+            "type": "MOV",
+            "media_type": "电影",
+            "title": "Movie",
+            "year": "2026",
+            "image": "",
+            "site": "Trakt",
+        }]
+        second_cards = [{
+            "id": 123,
+            "type": "MOV",
+            "media_type": "电影",
+            "title": "Movie",
+            "year": "2026",
+            "image": "",
+            "site": "Trakt",
+        }]
+
+        hydrate_recommendation_posters(first_cards, source="trakt", media=media)
+        hydrate_recommendation_posters(second_cards, source="trakt", media=media)
+
+        self.assertEqual(second_cards[0]["image"], "https://image.tmdb.org/t/p/w500/poster.jpg")
         media.get_tmdb_info.assert_called_once()
 
     def test_trakt_card_prefers_tmdb_poster_over_existing_source_image(self):

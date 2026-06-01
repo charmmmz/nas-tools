@@ -16,6 +16,8 @@ __OG_IMAGE_XPATH = (
     "'abcdefghijklmnopqrstuvwxyz')='og:image']/@content"
 )
 __DOUBAN_IMAGE_PROXY_PATH = "/douban/image"
+__POSTER_CACHE = {}
+__POSTER_CACHE_MAXSIZE = 2048
 
 
 def hydrate_recommendation_posters(cards, source, media=None):
@@ -40,19 +42,30 @@ def hydrate_recommendation_posters(cards, source, media=None):
     return cards
 
 
+def clear_recommendation_poster_cache():
+    __POSTER_CACHE.clear()
+
+
 def __hydrate_trakt_poster(card, media):
     tmdbid = card.get("tmdbid") or card.get("id")
     if not __is_numeric_id(tmdbid):
         return
     mtype = __card_media_type(card)
+    cache_key = __poster_cache_key(source="trakt", mtype=mtype, media_id=tmdbid)
+    cached = __get_cached_poster(cache_key)
+    if cached:
+        card["image"] = cached
+        return
     tmdbinfo = media.get_tmdb_info(mtype=mtype, tmdbid=tmdbid)
     poster_path = (tmdbinfo or {}).get("poster_path")
     if poster_path:
         card["image"] = TMDB_IMAGE_W500_URL % poster_path
+        __set_cached_poster(cache_key, card["image"])
         return
     poster_url = __get_tmdb_web_poster(mtype=mtype, tmdbid=tmdbid)
     if poster_url:
         card["image"] = poster_url
+        __set_cached_poster(cache_key, card["image"])
 
 
 def __hydrate_douban_poster(card, media):
@@ -63,6 +76,13 @@ def __hydrate_douban_poster(card, media):
     mtype = __card_media_type(card)
     if not title or not year or not mtype:
         __proxy_douban_image(card)
+        return
+    cache_key = __poster_cache_key(source="douban", mtype=mtype, media_id="%s:%s" % (title, year))
+    cached = __get_cached_poster(cache_key)
+    if cached:
+        card["image"] = cached.get("image")
+        if cached.get("tmdbid"):
+            card["tmdbid"] = cached.get("tmdbid")
         return
     media_info = media.get_media_info(title="%s %s" % (title, year),
                                       mtype=mtype,
@@ -76,6 +96,10 @@ def __hydrate_douban_poster(card, media):
         return
     card["image"] = poster_path
     card["tmdbid"] = media_info.tmdb_id
+    __set_cached_poster(cache_key, {
+        "image": card["image"],
+        "tmdbid": card["tmdbid"]
+    })
 
 
 def __card_media_type(card):
@@ -93,6 +117,22 @@ def __is_numeric_id(value):
         return True
     except (TypeError, ValueError):
         return False
+
+
+def __poster_cache_key(source, mtype, media_id):
+    return "%s:%s:%s" % (source or "", getattr(mtype, "value", mtype) or "", media_id or "")
+
+
+def __get_cached_poster(cache_key):
+    return __POSTER_CACHE.get(cache_key)
+
+
+def __set_cached_poster(cache_key, value):
+    if not cache_key or not value:
+        return
+    if len(__POSTER_CACHE) >= __POSTER_CACHE_MAXSIZE:
+        __POSTER_CACHE.pop(next(iter(__POSTER_CACHE)))
+    __POSTER_CACHE[cache_key] = value
 
 
 def __proxy_douban_image(card):

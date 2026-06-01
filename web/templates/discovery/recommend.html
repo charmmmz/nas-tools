@@ -67,9 +67,9 @@
   // 过滤参数
   Params = {{ Params|safe or "{}" }}
 
-  // Trakt/Douban列表使用更适合推荐浏览的宽卡片
-  var DoubanSubTypes = ["dbom", "dbhm", "dbht", "dbdh", "dbnm", "dbtop", "dbzy", "dbct", "dbgt"];
-  var UseRecommendationCard = Type === "TRAKT" || Type === "DOUBANTAG" || DoubanSubTypes.includes(SubType);
+  // 媒体推荐/发现/搜索列表统一使用信息更完整的推荐卡片
+  var RecommendationTypes = ["MOV", "TV", "SEARCH", "TRENDING", "DISCOVER", "DOUBANTAG", "TRAKT", "DOWNLOADED"];
+  var UseRecommendationCard = RecommendationTypes.includes(Type) && SubType !== "bangumi";
   $("#recommend_content")
     .removeClass("grid-media-card grid-recommendation-card")
     .addClass(UseRecommendationCard ? "grid-recommendation-card" : "grid-media-card");

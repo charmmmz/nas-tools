@@ -37,6 +37,9 @@ export class CustomSlide extends CustomElement {
           flex:0 0 auto;
           max-width: 11rem;
         }
+        .media-slide-card-number.media-slide-card-wide{
+          max-width: 26rem;
+        }
       </style>
       <div class="container-fluid overflow-hidden px-0">
         <div class="page-header d-print-none">
@@ -82,7 +85,7 @@ export class CustomSlide extends CustomElement {
         </div>
         <div class="media-slide-hide-scrollbar px-2 py-2"
             @scroll=${ this._countDisabled }>
-          <div class="row row-cards d-flex flex-row flex-nowrap media-slide-card-number justify-content-start">
+          <div class="row row-cards d-flex flex-row flex-nowrap media-slide-card-number ${this.lazy === "recommendation-card" ? "media-slide-card-wide" : ""} justify-content-start">
             ${this.slide_card}
           </div>
         </div>
