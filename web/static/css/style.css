@@ -95,6 +95,7 @@ body, .page {
 }
 
 .lit-recommendation-card {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(8.5rem, 38%) minmax(0, 1fr);
     min-height: 15rem;
@@ -156,9 +157,10 @@ body, .page {
     gap: 0.5rem;
     min-height: 1.5rem;
     margin-bottom: 0.5rem;
+    padding-right: 5rem;
 }
 
-.recommendation-card-source {
+.recommendation-card-kind {
     max-width: 7.5rem;
     overflow: hidden;
     border-radius: 999px;
@@ -183,9 +185,29 @@ body, .page {
 }
 
 .recommendation-card-state {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 2;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 0.125rem 0.55rem;
+    background: rgba(255, 255, 255, 0.08);
     font-size: 0.75rem;
     font-weight: 700;
     line-height: 1.25rem;
+}
+
+.recommendation-card-state-collected {
+    border-color: rgba(34, 197, 94, 0.48);
+    background: rgba(22, 101, 52, 0.78);
+    color: #dcfce7;
+}
+
+.recommendation-card-state-subscribed {
+    border-color: rgba(248, 113, 113, 0.48);
+    background: rgba(127, 29, 29, 0.78);
+    color: #fee2e2;
 }
 
 .recommendation-card-title {
@@ -257,6 +279,34 @@ body, .page {
     text-decoration: none;
 }
 
+.recommendation-card-compact {
+    min-height: 14rem;
+}
+
+.recommendation-card-compact .recommendation-card-poster,
+.recommendation-card-compact .recommendation-card-image {
+    min-height: 14rem;
+}
+
+.recommendation-card-compact .recommendation-card-body {
+    padding: 0.85rem;
+}
+
+.recommendation-card-compact .recommendation-card-title {
+    min-height: 2.35rem;
+    font-size: 1rem;
+    -webkit-line-clamp: 2;
+}
+
+.recommendation-card-compact .recommendation-card-overview {
+    min-height: 3.6rem;
+    -webkit-line-clamp: 3;
+}
+
+.recommendation-card-compact .recommendation-card-actions {
+    margin-top: 0.7rem;
+}
+
 @media (max-width: 575.98px) {
     .grid-recommendation-card {
         grid-template-columns: minmax(0, 1fr);
@@ -290,6 +340,10 @@ body, .page {
     .recommendation-card-action {
         min-width: 0;
         flex: 1;
+    }
+
+    .recommendation-card-topline {
+        padding-right: 4.75rem;
     }
 }
 

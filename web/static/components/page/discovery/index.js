@@ -126,15 +126,16 @@ export class PageDiscovery extends CustomElement {
           <custom-slide
             slide-title=${item.title}
             slide-click="javascript:navmenu('recommend?type=${item.type}&subtype=${item.subtype}&week=${item.week ?? ""}&title=${item.title}')"
-            lazy="normal-card"
+            lazy="recommendation-card"
             .slide_card=${this._slide_card_list[item.title]
               ? this._slide_card_list[item.title].map((card, index) => ( html`
-                <normal-card
+                <recommendation-card
                   @fav_change=${(e) => {
                     Golbal.update_fav_data("get_recommend", item.subtype, (extra) => (
                       extra.Items[index].fav = e.detail.fav, extra
                     ));
                   }}
+                  card-compact=1
                   lazy=1
                   card-tmdbid=${card.id}
                   card-mediatype=${card.type}
@@ -147,8 +148,8 @@ export class PageDiscovery extends CustomElement {
                   card-overview=${card.overview}
                   card-restype=${card.media_type}
                   class="px-2"
-                ></normal-card>`))
-              : Array(20).fill(html`<normal-card-placeholder></normal-card-placeholder>`)
+                ></recommendation-card>`))
+              : Array(20).fill(html`<recommendation-card-placeholder></recommendation-card-placeholder>`)
             }
           ></custom-slide>`
         ))}

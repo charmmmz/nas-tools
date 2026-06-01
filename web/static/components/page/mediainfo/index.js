@@ -223,14 +223,15 @@ export class PageMediainfo extends CustomElement {
           <custom-slide
             slide-title="类似"
             slide-click='javascript:navmenu("recommend?type=${this.media_type}&subtype=sim&tmdbid=${this.tmdbid}&title=类似&subtitle=${this.media_info.title}")'
-            lazy="normal-card"
+            lazy="recommendation-card"
             .slide_card=${this.similar_media.map((item, index) => ( html`
-              <normal-card
+              <recommendation-card
                 @fav_change=${(e) => {
                   Golbal.update_fav_data("get_recommend", "sim", (extra) => (
                     extra.Items[index].fav = e.detail.fav, extra
                   ));
                 }}
+                card-compact=1
                 lazy=1
                 card-tmdbid=${item.id}
                 card-mediatype=${item.type}
@@ -241,7 +242,8 @@ export class PageMediainfo extends CustomElement {
                 card-year=${item.year}
                 card-title=${item.title}
                 card-overview=${item.overview}
-              ></normal-card>`))
+                card-restype=${item.media_type}
+              ></recommendation-card>`))
             }
           ></custom-slide>`
         : nothing }
@@ -252,14 +254,15 @@ export class PageMediainfo extends CustomElement {
           <custom-slide
             slide-title="推荐"
             slide-click='javascript:navmenu("recommend?type=${this.media_type}&subtype=more&tmdbid=${this.tmdbid}&title=推荐&subtitle=${this.media_info.title}")'
-            lazy="normal-card"
+            lazy="recommendation-card"
             .slide_card=${this.recommend_media.map((item, index) => ( html`
-              <normal-card
+              <recommendation-card
                 @fav_change=${(e) => {
                   Golbal.update_fav_data("get_recommend", "more", (extra) => (
                     extra.Items[index].fav = e.detail.fav, extra
                   ));
                 }}
+                card-compact=1
                 lazy=1
                 card-tmdbid=${item.id}
                 card-mediatype=${item.type}
@@ -270,7 +273,8 @@ export class PageMediainfo extends CustomElement {
                 card-year=${item.year}
                 card-title=${item.title}
                 card-overview=${item.overview}
-              ></normal-card>`))
+                card-restype=${item.media_type}
+              ></recommendation-card>`))
             }
           ></custom-slide>`
         : nothing }
