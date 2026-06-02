@@ -361,7 +361,7 @@ class Qbittorrent(_IDownloadClient):
                                             seeding_time_limit=seeding_time_limit,
                                             use_auto_torrent_management=use_auto_torrent_management,
                                             cookie=cookie)
-            return True if qbc_ret and str(qbc_ret).find("Ok") != -1 else False
+            return "fails" not in str(qbc_ret).lower()
         except Exception as err:
             ExceptionUtils.exception_traceback(err)
             return False
