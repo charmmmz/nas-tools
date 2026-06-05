@@ -2,6 +2,16 @@ name: Build NASTOOL Beta Image
 
 on:
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: Build target platforms
+        required: true
+        default: amd64
+        type: choice
+        options:
+          - amd64
+          - arm64
+          - multi
   push:
     branches:
       - dev
@@ -50,7 +60,30 @@ jobs:
           app_version=$(sed -ne "s/APP_VERSION\s=\s'v\(.*\)'/\1/gp" version.py)
           echo "app_version=${app_version:-custom}" >> "$GITHUB_ENV"
 
+      - name: Resolve platforms
+        env:
+          PLATFORM_INPUT: ${{ inputs.platforms }}
+        run: |
+          case "${PLATFORM_INPUT:-amd64}" in
+            amd64)
+              platforms="linux/amd64"
+              ;;
+            arm64)
+              platforms="linux/arm64"
+              ;;
+            multi)
+              platforms="linux/amd64,linux/arm64"
+              ;;
+            *)
+              echo "Unsupported platforms input: ${PLATFORM_INPUT}" >&2
+              exit 1
+              ;;
+          esac
+          echo "Resolved platforms: ${platforms}"
+          echo "PLATFORMS=${platforms}" >> "$GITHUB_ENV"
+
       - name: Set up QEMU
+        if: ${{ inputs.platforms == 'arm64' || inputs.platforms == 'multi' }}
         uses: https://github.com/docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
 
       - name: Resolve Buildx proxy
@@ -84,10 +117,10 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile.beta
-          platforms: |
-            linux/amd64
-            linux/arm64
+          platforms: ${{ env.PLATFORMS }}
           push: true
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-beta
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-beta,mode=max
           build-args: |
             HTTP_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
             HTTPS_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
