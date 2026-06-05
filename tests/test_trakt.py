@@ -2,7 +2,7 @@
 
 import time
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.media.trakt import Trakt
 from web.action import WebAction
@@ -124,60 +124,51 @@ class TraktClientTest(TestCase):
 
 
 class TraktWebActionTest(TestCase):
-    def test_get_recommend_dispatches_trakt_movies(self):
-        expected = [{"id": 11, "title": "Movie", "type": "MOV"}]
+    def test_get_recommend_delegates_to_recommendation_service(self):
+        expected = {"code": 0, "Items": [{"id": 11, "title": "Movie", "type": "MOV"}]}
         action = object.__new__(WebAction)
-        with patch("web.action.Trakt", create=True) as trakt_cls, \
-                patch("web.action.hydrate_recommendation_posters") as hydrate, \
-                patch("web.action.FileTransfer") as filetransfer_cls:
-            trakt_cls.return_value.get_movie_recommendations.return_value = expected
-            filetransfer_cls.return_value.get_media_exists_flag.return_value = (False, "")
+        request = {
+            "type": "TRAKT",
+            "subtype": "movie",
+            "page": 2,
+            "params": {"ignore_watched": "true"}
+        }
+        with patch("web.action.RecommendationService") as service_cls:
+            service_cls.return_value.get_recommend.return_value = expected
+
+            result = action.get_recommend(request)
+
+        service_cls.assert_called_once()
+        service_cls.return_value.get_recommend.assert_called_once_with(request)
+        self.assertEqual(result, expected)
+
+    def test_get_recommend_passes_downloaded_provider_to_service(self):
+        action = object.__new__(WebAction)
+        action.get_downloaded = lambda data: {"Items": [{"id": data.get("page")}]}
+        with patch("web.action.RecommendationService") as service_cls:
+            service_cls.return_value.get_recommend.return_value = {"code": 0, "Items": []}
 
             result = action.get_recommend({
-                "type": "TRAKT",
-                "subtype": "movie",
-                "page": 2,
-                "params": {"ignore_watched": "true"}
+                "type": "DOWNLOADED",
+                "page": 3
             })
 
-        trakt_cls.return_value.get_movie_recommendations.assert_called_once_with(
-            page=2,
-            params={"ignore_watched": "true"}
-        )
-        hydrate.assert_called_once_with(expected, source="trakt")
-        self.assertEqual(result["Items"], [{
-            "id": 11,
-            "title": "Movie",
-            "type": "MOV",
-            "fav": False,
-            "rssid": ""
-        }])
+        downloaded_provider = service_cls.call_args.kwargs["downloaded_provider"]
+        self.assertEqual(downloaded_provider(9), [{"id": 9}])
+        self.assertEqual(result, {"code": 0, "Items": []})
 
-    def test_get_recommend_dispatches_trakt_shows(self):
-        expected = [{"id": 22, "title": "Show", "type": "TV"}]
+    def test_get_recommend_passes_search_provider_to_service(self):
         action = object.__new__(WebAction)
-        with patch("web.action.Trakt", create=True) as trakt_cls, \
-                patch("web.action.hydrate_recommendation_posters") as hydrate, \
-                patch("web.action.FileTransfer") as filetransfer_cls:
-            trakt_cls.return_value.get_show_recommendations.return_value = expected
-            filetransfer_cls.return_value.get_media_exists_flag.return_value = (True, 7)
+        action.get_downloaded = lambda data: {"Items": []}
+        media = Mock()
+        media.to_dict.return_value = {"id": 99}
+        with patch("web.action.RecommendationService") as service_cls, \
+                patch("web.action.WebUtils.search_media_infos") as search:
+            service_cls.return_value.get_recommend.return_value = {"code": 0, "Items": []}
+            search.return_value = [media]
 
-            result = action.get_recommend({
-                "type": "TRAKT",
-                "subtype": "show",
-                "page": 1,
-                "params": {}
-            })
+            action.get_recommend({"type": "SEARCH", "page": 1})
+            search_provider = service_cls.call_args.kwargs["search_provider"]
+            self.assertEqual(search_provider("keyword", "tmdb", 2), [{"id": 99}])
 
-        trakt_cls.return_value.get_show_recommendations.assert_called_once_with(
-            page=1,
-            params={}
-        )
-        hydrate.assert_called_once_with(expected, source="trakt")
-        self.assertEqual(result["Items"], [{
-            "id": 22,
-            "title": "Show",
-            "type": "TV",
-            "fav": True,
-            "rssid": 7
-        }])
+        search.assert_called_once_with(keyword="keyword", source="tmdb", page=2)

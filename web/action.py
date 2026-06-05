@@ -25,7 +25,7 @@ from app.helper import DbHelper, ProgressHelper, ThreadHelper, \
     MetaHelper, DisplayHelper, WordsHelper, CookieCloudHelper
 from app.indexer import Indexer
 from app.media import Category, Media, Bangumi, DouBan, Trakt
-from app.media.recommendation import hydrate_recommendation_posters
+from app.media.recommendation import RecommendationService
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
 from app.message import Message, MessageCenter
@@ -2324,156 +2324,16 @@ class WebAction:
         return {"code": 0, "info": ruleinfo}
 
     def get_recommend(self, data):
-        Type = data.get("type")
-        SubType = data.get("subtype")
-        CurrentPage = data.get("page")
-        if not CurrentPage:
-            CurrentPage = 1
-        else:
-            CurrentPage = int(CurrentPage)
-
-        res_list = []
-        poster_source = ""
-        if Type in ['MOV', 'TV']:
-            if SubType == "hm":
-                # TMDB热门电影
-                res_list = Media().get_tmdb_hot_movies(CurrentPage)
-            elif SubType == "ht":
-                # TMDB热门电视剧
-                res_list = Media().get_tmdb_hot_tvs(CurrentPage)
-            elif SubType == "nm":
-                # TMDB最新电影
-                res_list = Media().get_tmdb_new_movies(CurrentPage)
-            elif SubType == "nt":
-                # TMDB最新电视剧
-                res_list = Media().get_tmdb_new_tvs(CurrentPage)
-            elif SubType == "dbom":
-                # 豆瓣正在上映
-                res_list = DouBan().get_douban_online_movie(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbhm":
-                # 豆瓣热门电影
-                res_list = DouBan().get_douban_hot_movie(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbht":
-                # 豆瓣热门电视剧
-                res_list = DouBan().get_douban_hot_tv(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbdh":
-                # 豆瓣热门动画
-                res_list = DouBan().get_douban_hot_anime(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbnm":
-                # 豆瓣最新电影
-                res_list = DouBan().get_douban_new_movie(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbtop":
-                # 豆瓣TOP250电影
-                res_list = DouBan().get_douban_top250_movie(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbzy":
-                # 豆瓣最新电视剧
-                res_list = DouBan().get_douban_hot_show(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbct":
-                # 华语口碑剧集榜
-                res_list = DouBan().get_douban_chinese_weekly_tv(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "dbgt":
-                # 全球口碑剧集榜
-                res_list = DouBan().get_douban_weekly_tv_global(CurrentPage)
-                poster_source = "douban"
-            elif SubType == "sim":
-                # 相似推荐
-                TmdbId = data.get("tmdbid")
-                res_list = self.__media_similar({
-                    "tmdbid": TmdbId,
-                    "page": CurrentPage,
-                    "type": Type
-                }).get("data")
-            elif SubType == "more":
-                # 更多推荐
-                TmdbId = data.get("tmdbid")
-                res_list = self.__media_recommendations({
-                    "tmdbid": TmdbId,
-                    "page": CurrentPage,
-                    "type": Type
-                }).get("data")
-            elif SubType == "person":
-                # 人物作品
-                PersonId = data.get("personid")
-                res_list = self.__person_medias({
-                    "personid": PersonId,
-                    "type": Type,
-                    "page": CurrentPage
-                }).get("data")
-            elif SubType == "bangumi":
-                # Bangumi每日放送
-                Week = data.get("week")
-                res_list = Bangumi().get_bangumi_calendar(page=CurrentPage, week=Week)
-        elif Type == "SEARCH":
-            # 搜索词条
-            Keyword = data.get("keyword")
-            Source = data.get("source")
-            medias = WebUtils.search_media_infos(
-                keyword=Keyword, source=Source, page=CurrentPage)
-            res_list = [media.to_dict() for media in medias]
-        elif Type == "DOWNLOADED":
-            # 近期下载
-            res_list = self.get_downloaded({
-                "page": CurrentPage
-            }).get("Items")
-        elif Type == "TRENDING":
-            # TMDB流行趋势
-            res_list = Media().get_tmdb_trending_all_week(page=CurrentPage)
-        elif Type == "DISCOVER":
-            # TMDB发现
-            mtype = MediaType.MOVIE if SubType in MovieTypes else MediaType.TV
-            # 过滤参数 with_genres with_original_language
-            params = data.get("params") or {}
-            res_list = Media().get_tmdb_discover(mtype=mtype, page=CurrentPage, params=params)
-        elif Type == "DOUBANTAG":
-            # 豆瓣发现
-            mtype = MediaType.MOVIE if SubType in MovieTypes else MediaType.TV
-            # 参数
-            params = data.get("params") or {}
-            # 排序
-            sort = params.get("sort") or "T"
-            # 选中的分类
-            tags = params.get("tags") or ""
-            # 过滤参数
-            res_list = DouBan().get_douban_disover(mtype=mtype,
-                                                   sort=sort,
-                                                   tags=tags,
-                                                   page=CurrentPage)
-            poster_source = "douban"
-        elif Type == "TRAKT":
-            # Trakt个性推荐
-            params = data.get("params") or {}
-            if SubType == "movie":
-                res_list = Trakt().get_movie_recommendations(page=CurrentPage,
-                                                             params=params)
-            elif SubType == "show":
-                res_list = Trakt().get_show_recommendations(page=CurrentPage,
-                                                            params=params)
-            poster_source = "trakt"
-
-        # 补充存在与订阅状态
-        if poster_source:
-            hydrate_recommendation_posters(res_list, source=poster_source)
-        filetransfer = FileTransfer()
-        for res in res_list:
-            fav, rssid = filetransfer.get_media_exists_flag(mtype=res.get("type") or Type,
-                                                            title=res.get(
-                                                                "title"),
-                                                            year=res.get(
-                                                                "year"),
-                                                            mediaid=res.get("id"))
-            res.update({
-                'fav': fav,
-                'rssid': rssid
-            })
-        return {"code": 0, "Items": res_list}
+        return RecommendationService(
+            search_provider=lambda keyword, source, page: [
+                media.to_dict() for media in WebUtils.search_media_infos(
+                    keyword=keyword,
+                    source=source,
+                    page=page
+                )
+            ],
+            downloaded_provider=lambda page: self.get_downloaded({"page": page}).get("Items")
+        ).get_recommend(data)
 
     @staticmethod
     def get_mobile_home(data):
