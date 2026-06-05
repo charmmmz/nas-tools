@@ -21,7 +21,7 @@ __OG_IMAGE_XPATH = (
 __DOUBAN_IMAGE_PROXY_PATH = "/douban/image"
 __POSTER_CACHE = {}
 __POSTER_CACHE_MAXSIZE = 2048
-__POSTER_CACHE_TYPE = "RecommendationPosterCache"
+_POSTER_CACHE_TYPE = "RecommendationPosterCache"
 
 
 def hydrate_recommendation_posters(cards, source, media=None):
@@ -72,7 +72,7 @@ class RecommendationPosterCache:
     def get(self, key):
         if not key:
             return None
-        value = self._dict_helper.get(__POSTER_CACHE_TYPE, key)
+        value = self._dict_helper.get(_POSTER_CACHE_TYPE, key)
         if not value:
             return None
         try:
@@ -83,7 +83,7 @@ class RecommendationPosterCache:
     def set(self, key, value):
         if not key or not value:
             return
-        self._dict_helper.set(__POSTER_CACHE_TYPE,
+        self._dict_helper.set(_POSTER_CACHE_TYPE,
                               key,
                               json.dumps(value, ensure_ascii=False))
 
@@ -359,7 +359,11 @@ class RecommendationService:
         })
 
     def __apply_cached_poster(self, card, cache_key):
-        cached = self._poster_cache.get(cache_key)
+        try:
+            cached = self._poster_cache.get(cache_key)
+        except Exception as err:
+            log.warn("【Recommend】读取海报缓存失败：%s" % err)
+            return False
         if not cached:
             return False
         if isinstance(cached, str):
@@ -374,7 +378,10 @@ class RecommendationService:
         if isinstance(value, dict):
             value = dict(value)
             value.setdefault("updated_at", int(time.time()))
-        self._poster_cache.set(cache_key, value)
+        try:
+            self._poster_cache.set(cache_key, value)
+        except Exception as err:
+            log.warn("【Recommend】写入海报缓存失败：%s" % err)
 
     def __append_library_state(self, cards, fallback_type):
         if not cards:

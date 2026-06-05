@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import json
 import threading
 from unittest import TestCase
 
-from app.media.recommendation import RecommendationService
+from app.media.recommendation import RecommendationPosterCache, RecommendationService
 from app.utils.types import MediaType
 
 
@@ -22,6 +23,27 @@ class MemoryPosterCache:
     def clear(self):
         self.values.clear()
         self.sets.clear()
+
+
+class FailingPosterCache:
+    def get(self, key):
+        raise RuntimeError("cache unavailable")
+
+    def set(self, key, value):
+        raise RuntimeError("cache unavailable")
+
+
+class FakeDictHelper:
+    def __init__(self):
+        self.values = {}
+        self.set_calls = []
+
+    def get(self, dtype, key):
+        return self.values.get((dtype, key), "")
+
+    def set(self, dtype, key, value):
+        self.set_calls.append((dtype, key, value))
+        self.values[(dtype, key)] = value
 
 
 class FakeMedia:
@@ -81,6 +103,23 @@ class FakeTrakt:
 
 
 class RecommendationServiceTest(TestCase):
+    def test_recommendation_poster_cache_uses_stable_dict_type(self):
+        dict_helper = FakeDictHelper()
+        dict_helper.values[("RecommendationPosterCache", "poster:trakt:电影:123")] = json.dumps({
+            "image": "https://image.tmdb.org/t/p/w500/cached.jpg"
+        })
+        cache = RecommendationPosterCache(dict_helper=dict_helper)
+
+        self.assertEqual(cache.get("poster:trakt:电影:123"), {
+            "image": "https://image.tmdb.org/t/p/w500/cached.jpg"
+        })
+
+        cache.set("poster:trakt:电影:456", {
+            "image": "https://image.tmdb.org/t/p/w500/new.jpg"
+        })
+
+        self.assertEqual(dict_helper.set_calls[0][0], "RecommendationPosterCache")
+
     def test_trakt_items_are_standardized_and_poster_result_is_persisted(self):
         media = FakeMedia()
         cache = MemoryPosterCache()
@@ -132,6 +171,25 @@ class RecommendationServiceTest(TestCase):
 
         self.assertEqual(cards[0]["image"], "https://image.tmdb.org/t/p/w500/cached.jpg")
         self.assertEqual(media.tmdb_info_calls, [])
+
+    def test_cache_failure_does_not_block_tmdb_poster_hydration(self):
+        media = FakeMedia()
+        service = RecommendationService(media_factory=lambda: media,
+                                        poster_cache=FailingPosterCache(),
+                                        max_workers=1)
+
+        cards = service.normalize_items([{
+            "id": 123,
+            "title": "Movie",
+            "year": "2026",
+            "type": "MOV",
+            "media_type": "电影",
+            "image": "",
+            "overview": "",
+        }], source="trakt")
+
+        self.assertEqual(cards[0]["image"], "https://image.tmdb.org/t/p/w500/poster-123.jpg")
+        self.assertEqual(media.tmdb_info_calls, [(MediaType.MOVIE, 123)])
 
     def test_douban_items_fall_back_to_proxy_when_tmdb_match_missing(self):
         media = FakeMedia()
