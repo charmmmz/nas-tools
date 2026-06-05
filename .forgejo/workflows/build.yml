@@ -63,8 +63,25 @@ jobs:
       - name: Set up QEMU
         uses: https://github.com/docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
 
+      - name: Resolve Buildx proxy
+        id: buildx-proxy
+        run: |
+          proxy="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
+          no_proxy="${NO_PROXY:-${no_proxy:-}}"
+          echo "proxy=${proxy}" >> "$GITHUB_OUTPUT"
+          echo "no_proxy=${no_proxy}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Buildx
         uses: https://github.com/docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        with:
+          driver-opts: |
+            network=host
+            env.HTTP_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
+            env.HTTPS_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
+            env.http_proxy=${{ steps.buildx-proxy.outputs.proxy }}
+            env.https_proxy=${{ steps.buildx-proxy.outputs.proxy }}
+            env.NO_PROXY=${{ steps.buildx-proxy.outputs.no_proxy }}
+            env.no_proxy=${{ steps.buildx-proxy.outputs.no_proxy }}
 
       - name: Login to Forgejo registry
         uses: https://github.com/docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
@@ -82,6 +99,13 @@ jobs:
             linux/amd64
             linux/arm64
           push: true
+          build-args: |
+            HTTP_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
+            HTTPS_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
+            http_proxy=${{ steps.buildx-proxy.outputs.proxy }}
+            https_proxy=${{ steps.buildx-proxy.outputs.proxy }}
+            NO_PROXY=${{ steps.buildx-proxy.outputs.no_proxy }}
+            no_proxy=${{ steps.buildx-proxy.outputs.no_proxy }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.app_version }}
