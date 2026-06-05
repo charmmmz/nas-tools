@@ -1,0 +1,75 @@
+name: Build NASTOOL Beta Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths:
+      - version.py
+      - package_list.txt
+      - requirements.txt
+      - third_party.txt
+      - docker/Dockerfile.beta
+      - docker/entrypoint.sh
+      - .dockerignore
+      - .forgejo/workflows/build-beta.yml
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  FORGEJO_REGISTRY: ${{ vars.FORGEJO_REGISTRY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build Docker Beta Image
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Resolve registry
+        run: |
+          registry="${FORGEJO_REGISTRY}"
+          if [ -z "$registry" ]; then
+            registry="${GITHUB_SERVER_URL#http://}"
+            registry="${registry#https://}"
+          fi
+          registry="${registry%%/}"
+          echo "REGISTRY=${registry}" >> "$GITHUB_ENV"
+
+      - name: Release version
+        run: |
+          app_version=$(sed -ne "s/APP_VERSION\s=\s'v\(.*\)'/\1/gp" version.py)
+          echo "app_version=${app_version:-custom}" >> "$GITHUB_ENV"
+
+      - name: Set up QEMU
+        uses: https://github.com/docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: https://github.com/docker/setup-buildx-action@v3
+
+      - name: Login to Forgejo registry
+        uses: https://github.com/docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.FORGEJO_PACKAGE_TOKEN || secrets.FORGEJO_TOKEN }}
+
+      - name: Build and push beta image
+        uses: https://github.com/docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.beta
+          platforms: |
+            linux/amd64
+            linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.app_version }}-beta

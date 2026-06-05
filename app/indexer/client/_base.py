@@ -6,11 +6,12 @@ from abc import ABCMeta, abstractmethod
 import log
 from app.filter import Filter
 from app.helper import ProgressHelper
-from app.indexer_search_config import resolve_torznab_timeout
+from app.indexer_search_config import is_probable_same_media_name, resolve_torznab_limit, resolve_torznab_timeout
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import DomUtils, RequestUtils, StringUtils, ExceptionUtils
 from app.utils.types import MediaType, SearchType
+from config import Config
 
 
 class _IIndexClient(metaclass=ABCMeta):
@@ -72,7 +73,8 @@ class _IIndexClient(metaclass=ABCMeta):
         search_word = StringUtils.handler_special_chars(text=key_word,
                                                         replace_word=" ",
                                                         allow_space=True)
-        api_url = f"{indexer.domain}?apikey={self.api_key}&t=search&q={search_word}"
+        result_limit = resolve_torznab_limit(Config().get_config("pt"))
+        api_url = f"{indexer.domain}?apikey={self.api_key}&t=search&q={search_word}&limit={result_limit}"
         result_array = self.__parse_torznabxml(
             url=api_url,
             timeout=resolve_torznab_timeout(getattr(self, "_client_config", {}))
@@ -202,6 +204,15 @@ class _IIndexClient(metaclass=ABCMeta):
     def __mask_api_key(url):
         return re.sub(r"([?&]apikey=)[^&]+", r"\1***", url)
 
+    @staticmethod
+    def __is_probable_match_media_name(meta_info, match_media):
+        target_names = []
+        for attr in ["title", "cn_name", "en_name", "original_title"]:
+            target_names.append(getattr(match_media, attr, None))
+        if hasattr(match_media, "get_name"):
+            target_names.append(match_media.get_name())
+        return is_probable_same_media_name(meta_info.get_name(), target_names)
+
     def filter_search_results(self, result_array: list,
                               order_seq,
                               indexer,
@@ -288,6 +299,11 @@ class _IIndexClient(metaclass=ABCMeta):
                         # 缓存匹配，合并媒体数据
                         media_info = self.media.merge_media_info(meta_info, match_media)
                     else:
+                        if not self.__is_probable_match_media_name(meta_info=meta_info,
+                                                                    match_media=match_media):
+                            log.info(f"【{self.index_type}】{torrent_name} 识别为 {meta_info.get_name()}，标题不匹配，跳过TMDB查询")
+                            index_match_fail += 1
+                            continue
                         # 重新识别
                         media_info = self.media.get_media_info(title=torrent_name, subtitle=description, chinese=False)
                         if not media_info:
