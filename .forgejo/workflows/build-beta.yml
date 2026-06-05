@@ -70,8 +70,6 @@ jobs:
             env.HTTPS_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
             env.http_proxy=${{ steps.buildx-proxy.outputs.proxy }}
             env.https_proxy=${{ steps.buildx-proxy.outputs.proxy }}
-            env.NO_PROXY=${{ steps.buildx-proxy.outputs.no_proxy }}
-            env.no_proxy=${{ steps.buildx-proxy.outputs.no_proxy }}
 
       - name: Login to Forgejo registry
         uses: https://github.com/docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
