@@ -65,6 +65,7 @@ jobs:
         uses: https://github.com/docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
         with:
           driver-opts: |
+            image=moby/buildkit:v0.13.2
             network=host
             env.HTTP_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
             env.HTTPS_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
