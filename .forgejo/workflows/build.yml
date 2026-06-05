@@ -130,7 +130,7 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           push: true
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max,oci-mediatypes=true,image-manifest=true
           build-args: |
             HTTP_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
             HTTPS_PROXY=${{ steps.buildx-proxy.outputs.proxy }}
